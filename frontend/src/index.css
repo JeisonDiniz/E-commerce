@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --surface-page: #f1efe9;
+  --surface-card: #ffffff;
+  --text-primary: #0d0d0d;
+  --text-secondary: #55534d;
+  --text-muted: #8a887f;
+  --border-hairline: #e3e0d6;
+  --border-strong: #c9c6ba;
+
+  --status-good: #0ca30c;
+  --status-warning: #b8860b;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
+
+  /* Marca: paleta monocromática (preto/branco), no espírito do template de referência. */
+  --ink: #0d0d0d;
+  --ink-soft: #2b2b2b;
+  --accent: #0d0d0d;
+  --accent-hover: #2b2b2b;
+  --accent-soft: #ececec;
+
+  --font-display: "Archivo Black", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--surface-page);
+  background-image:
+    radial-gradient(rgba(13, 13, 13, 0.025) 1px, transparent 1px);
+  background-size: 3px 3px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+/* Campo estilo "underline" (sem caixa), usado no checkout — rótulo pequeno
+   em maiúsculas acima, traço inferior no lugar da borda inteira. */
+.field-underline {
+  width: 100%;
+  border: none;
+  border-bottom: 1.5px solid var(--border-strong);
+  background: transparent;
+  padding: 10px 2px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.field-underline:focus {
+  outline: none;
+  border-bottom-color: var(--ink);
+  box-shadow: none !important;
+}
+
+input:not(.field-underline):focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  border-color: var(--ink) !important;
+}
+
+.tracked {
+  letter-spacing: 0.14em;
+}

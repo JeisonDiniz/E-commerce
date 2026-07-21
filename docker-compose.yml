@@ -1,0 +1,30 @@
+# Sobe apenas a infraestrutura (Postgres + Redis) para desenvolvimento local.
+# O back-end (FastAPI) e o front-end (React) continuam rodando fora do Docker,
+# diretamente com uvicorn/npm — mais simples de depurar durante o TCC.
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ecommerce_ml
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database:/database
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+volumes:
+  pgdata:

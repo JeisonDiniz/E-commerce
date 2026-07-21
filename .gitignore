@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# Ambiente
+.env
+.env.local
+
+# Node / React
+node_modules/
+dist/
+build/
+
+# Modelos treinados (Etapa 3)
+backend/app/ml/artifacts/*.joblib
+backend/app/ml/artifacts/*.pkl
+
+# Dataset sintético gerado (Etapa 6) — reproduzível via generate_synthetic_sales.py
+database/seed/output/
+
+# Editor / SO
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
