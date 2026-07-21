@@ -1,7 +1,7 @@
 # Loja Virtual de Roupas com Estoque Inteligente e Predição de Tendências (TCC)
 
 Plataforma que une **e-commerce + controle de estoque + Machine Learning** em
-um único sistema — diferente de soluções corporativas de previsão de estoque
+um único sistema diferente de soluções corporativas de previsão de estoque
 (que não têm loja integrada) e de trabalhos acadêmicos que tratam previsão de
 vendas ou gestão de estoque isoladamente. A decisão final de compra/reposição
 é **sempre humana**: o ML apenas prevê demanda e sugere reposição.
