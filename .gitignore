@@ -14,6 +14,11 @@ node_modules/
 dist/
 build/
 
+# Build do front-end copiado para dentro do back-end pelo Dockerfile de
+# deploy (ver COPY --from=frontend-build .../dist ./frontend_dist) — nunca
+# deve ser gerado/commitado fora do container.
+backend/frontend_dist/
+
 # Modelos treinados (Etapa 3)
 backend/app/ml/artifacts/*.joblib
 backend/app/ml/artifacts/*.pkl
@@ -21,8 +26,19 @@ backend/app/ml/artifacts/*.pkl
 # Dataset sintético gerado (Etapa 6) — reproduzível via generate_synthetic_sales.py
 database/seed/output/
 
+# Uploads de imagem em disco local (dev). Em produção o storage deve
+# apontar para um backend externo (ver app/core/storage.py).
+backend/static/uploads/*
+!backend/static/uploads/.gitkeep
+
+# Override local do docker-compose (ex.: remapear porta em conflito com serviço nativo)
+docker-compose.override.yml
+
 # Editor / SO
 .vscode/
 .idea/
 Thumbs.db
 .DS_Store
+
+# Artefatos de sessões de teste com playwright-cli
+.playwright-cli/

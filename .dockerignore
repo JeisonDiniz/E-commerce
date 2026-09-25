@@ -1,0 +1,25 @@
+# Python
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.egg-info/
+backend/.venv/
+backend/venv/
+backend/.env
+backend/.env.local
+backend/static/uploads/*
+!backend/static/uploads/.gitkeep
+backend/app/ml/artifacts/*.joblib
+backend/app/ml/artifacts/*.pkl
+
+# Node / front-end
+frontend/node_modules/
+frontend/dist/
+
+# Infra local
+E-commerce/
+venv/
+.git/
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

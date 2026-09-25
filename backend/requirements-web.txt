@@ -1,0 +1,44 @@
+# Dependências do serviço web (API) em produção — subconjunto de
+# requirements.txt SEM as libs de Machine Learning (pandas, numpy,
+# scikit-learn, prophet, joblib).
+#
+# Por quê: essas libs só são usadas pelo pipeline de treinamento offline
+# (app/ml/*, executado via `python -m app.ml.train`), nunca em request-time
+# da API (os endpoints de predição só leem `ml_predictions` no Postgres —
+# ver app/api/v1/endpoints/predictions.py). Prophet em particular compila o
+# CmdStan no `pip install`, o que deixa o build da imagem Docker lento/pesado
+# e é desnecessário para servir a API.
+#
+# Use este arquivo no Dockerfile do serviço web (Railway). Para rodar o
+# treinamento (local ou em um job separado), continue usando
+# requirements.txt, que inclui tudo daqui mais as libs de ML.
+
+# --- Web framework ---
+fastapi==0.139.2
+uvicorn[standard]==0.51.0
+
+# --- Banco de dados (PostgreSQL assíncrono) ---
+sqlalchemy[asyncio]==2.0.51
+asyncpg==0.31.0
+alembic==1.14.0
+
+# --- Cache ---
+redis==8.0.1
+
+# --- Configuração e validação ---
+pydantic==2.13.4
+pydantic-settings==2.14.2
+email-validator==2.3.0
+
+# --- Autenticação ---
+# bcrypt travado em 4.0.x: ver nota em requirements.txt.
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+python-jose[cryptography]==3.5.0
+python-multipart==0.0.32
+
+# --- Upload/validação de imagens de produto ---
+Pillow==11.0.0
+
+# --- Integrações externas (frete e pagamento) ---
+httpx==0.28.1
