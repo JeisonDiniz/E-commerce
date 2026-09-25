@@ -1,5 +1,4 @@
 from datetime import date
-from decimal import Decimal
 
 from pydantic import BaseModel
 
@@ -7,14 +6,14 @@ from pydantic import BaseModel
 class DailySalesPoint(BaseModel):
     sale_date: date
     units_sold: int
-    revenue: Decimal
+    revenue: float
 
 
 class TopProduct(BaseModel):
     product_name: str
     sku: str
     units_sold: int
-    revenue: Decimal
+    revenue: float
 
 
 class InventoryStatusSummary(BaseModel):

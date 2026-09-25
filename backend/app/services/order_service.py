@@ -23,6 +23,9 @@ async def checkout(
     user_id: uuid.UUID,
     shipping_address_id: uuid.UUID,
     payment_method: PaymentMethod,
+    shipping_service: str,
+    shipping_cost: float,
+    shipping_deadline_days: int | None = None,
 ) -> Order:
     result = await db.execute(
         select(Cart).where(Cart.user_id == user_id).options(selectinload(Cart.items))
@@ -35,6 +38,9 @@ async def checkout(
         user_id=user_id,
         shipping_address_id=shipping_address_id,
         total_amount=0,
+        shipping_service=shipping_service,
+        shipping_cost=shipping_cost,
+        shipping_deadline_days=shipping_deadline_days,
     )
     db.add(order)
     await db.flush()  # garante order.id antes de criar os itens
@@ -66,13 +72,13 @@ async def checkout(
             created_by=user_id,
         )
 
-    order.total_amount = total
+    order.total_amount = total + shipping_cost
 
     payment = Payment(
         order_id=order.id,
         method=payment_method,
         status=PaymentStatus.pendente,
-        amount=total,
+        amount=order.total_amount,
     )
     db.add(payment)
 

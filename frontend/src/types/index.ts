@@ -49,6 +49,16 @@ export interface ProductVariant {
   stock_quantity: number | null;
 }
 
+export interface ProductImage {
+  id: string;
+  product_id: string;
+  color: string | null;
+  alt_text?: string | null;
+  sort_order: number;
+  is_primary: boolean;
+  url: string;
+}
+
 export interface Product {
   id: string;
   category_id: string;
@@ -60,6 +70,7 @@ export interface Product {
   base_price: number;
   active: boolean;
   variants: ProductVariant[];
+  images: ProductImage[];
 }
 
 export type MovementType = "entrada" | "saida" | "ajuste" | "devolucao";

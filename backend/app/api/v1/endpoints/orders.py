@@ -7,10 +7,10 @@ from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_current_user, require_roles
 from app.core.database import get_db
-from app.models.commerce import Order
+from app.models.commerce import Order, Payment
 from app.models.enums import OrderStatus, UserRole
 from app.models.user import User
-from app.schemas.commerce import OrderCreate, OrderRead
+from app.schemas.commerce import OrderCreate, OrderRead, PaymentStatusRead
 from app.services.order_service import checkout
 
 router = APIRouter(prefix="/orders", tags=["Pedidos"])
@@ -27,7 +27,31 @@ async def create_order(
         user_id=current_user.id,
         shipping_address_id=payload.shipping_address_id,
         payment_method=payload.payment_method,
+        shipping_service=payload.shipping_service,
+        shipping_cost=payload.shipping_cost,
+        shipping_deadline_days=payload.shipping_deadline_days,
     )
+
+
+@router.get("/{order_id}/payment-status", response_model=PaymentStatusRead)
+async def get_payment_status(
+    order_id: uuid.UUID, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+) -> PaymentStatusRead:
+    """Endpoint de polling — o front consulta isto a cada poucos segundos
+    enquanto a tela de pagamento (QR code do Pix, etc.) está aberta. Nunca é
+    a fonte da verdade: só reflete o que o webhook já gravou no banco."""
+    order = await db.get(Order, order_id)
+    if order is None or order.user_id != current_user.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Pedido não encontrado")
+
+    result = await db.execute(
+        select(Payment).where(Payment.order_id == order_id).order_by(Payment.created_at.desc())
+    )
+    payment = result.scalars().first()
+    if payment is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Pagamento não encontrado")
+
+    return PaymentStatusRead(order_status=order.status, payment_status=payment.status)
 
 
 @router.get("/me", response_model=list[OrderRead])

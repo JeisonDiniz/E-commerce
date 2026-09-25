@@ -5,10 +5,7 @@ import { Button } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Spinner } from "../../components/ui/Spinner";
 import { IconMinus, IconPlus, IconX } from "../../components/ui/icons";
-
-function formatCurrency(value: number): string {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }).replace("R$", "$");
-}
+import { formatCurrency } from "../../utils/currency";
 
 export function CartPage() {
   const { cart, loading, refresh, updateItem, removeItem } = useCartStore();

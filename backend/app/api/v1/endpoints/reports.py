@@ -29,12 +29,17 @@ async def sales_summary(
     end_date: date | None = None,
     db: AsyncSession = Depends(get_db),
 ) -> list[DailySalesPoint]:
+    # Casts explícitos (::date) nos parâmetros: sem eles, quando start_date/
+    # end_date são None (nenhum filtro informado — o caso mais comum, usado
+    # pelo dashboard), o asyncpg não consegue inferir o tipo de um parâmetro
+    # NULL isolado e falha com "AmbiguousParameterError" antes mesmo de
+    # rodar a query.
     stmt = text(
         """
         SELECT sale_date, SUM(units_sold) AS units_sold, SUM(revenue) AS revenue
         FROM vw_daily_sales
-        WHERE (:start_date IS NULL OR sale_date >= :start_date)
-          AND (:end_date IS NULL OR sale_date <= :end_date)
+        WHERE (CAST(:start_date AS DATE) IS NULL OR sale_date >= CAST(:start_date AS DATE))
+          AND (CAST(:end_date AS DATE) IS NULL OR sale_date <= CAST(:end_date AS DATE))
         GROUP BY sale_date
         ORDER BY sale_date
         """

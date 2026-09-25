@@ -7,10 +7,18 @@ from app.models.enums import UserRole
 
 
 class UserCreate(BaseModel):
+    """Payload do cadastro público (POST /auth/register).
+
+    Propositalmente SEM campo `role`: quem se cadastra pela API é sempre
+    `customer` (ver app/api/v1/endpoints/auth.py::register). Contas
+    staff/manager/admin só são criadas via backend/scripts/seed_database.py
+    ou diretamente no banco — nunca por um endpoint público, para que
+    ninguém consiga se auto-promover a administrador.
+    """
+
     name: str
     email: EmailStr
     password: str
-    role: UserRole = UserRole.customer
 
 
 class UserRead(BaseModel):

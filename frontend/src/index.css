@@ -46,8 +46,12 @@ body {
 
 .font-display {
   font-family: var(--font-display);
-  letter-spacing: -0.02em;
-  line-height: 0.95;
+  /* Sem letter-spacing negativo: combinado com text-transform: uppercase,
+     qualquer tracking negativo (mesmo -0.01em) faz o navegador desenhar o
+     acento de "Ã"/"Ç" (comuns em títulos em PT-BR, ex. "Coleção") solto,
+     fora de posição — reproduzido e confirmado isolando cada propriedade.
+     Sem tracking negativo o glifo acentuado é composto corretamente. */
+  line-height: 1.05;
   text-transform: uppercase;
 }
 
@@ -79,4 +83,13 @@ textarea:focus {
 
 .tracked {
   letter-spacing: 0.14em;
+}
+
+@keyframes fadein {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }

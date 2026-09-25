@@ -66,7 +66,38 @@ Pontos-chave:
 - **Redis é só cache de leitura (cache-aside), nunca fonte de verdade** — se o Redis for limpo, a próxima requisição recalcula a partir do Postgres e repopula o cache automaticamente (`backend/app/api/v1/endpoints/predictions.py::_cached_predictions`).
 - **A aprovação humana é obrigatória e não há atalho no código** para transformar uma sugestão em movimento de estoque automaticamente — reforça o requisito do TCC de que a decisão final de compra é sempre do gestor.
 
-## 3. Checklist de verificação end-to-end
+## 3. Como uma foto de produto chega até a galeria por cor
+
+```mermaid
+sequenceDiagram
+    participant G as Gestor (painel admin)
+    participant R as React (ProductsAdminPage)
+    participant A as FastAPI
+    participant P as Pillow (validação)
+    participant S as StorageBackend (local)
+    participant DB as PostgreSQL
+    participant C as Cliente (ProductDetailPage)
+
+    G->>R: Escolhe a cor "Preto", seleciona um arquivo, clica "Enviar imagem"
+    R->>A: POST /products/{id}/images (multipart: file, color)
+    A->>A: Valida content-type (JPEG/PNG/WEBP) e tamanho (MAX_UPLOAD_SIZE_MB)
+    A->>P: Abre e re-salva a imagem (confirma que é um arquivo de imagem de<br/>verdade, descarta metadados/qualquer payload embutido)
+    A->>S: save(bytes, chave gerada com uuid4 — nunca o nome do arquivo do cliente)
+    A->>DB: INSERT product_images (product_id, color, storage_key)
+    A-->>R: ProductImageRead (url resolvida via StorageBackend.url_for)
+
+    Note over C,A: Cliente abre a ficha do produto
+    C->>A: GET /products/{id}
+    A-->>C: ProductRead.images[] (cada foto já com a cor associada)
+    C->>C: Clica no swatch "Preto" → filtra images por color === "Preto"<br/>e troca a galeria (fallback: cor geral → qualquer foto → placeholder)
+```
+
+Pontos-chave:
+- **`storage_key` nunca é uma URL** — é resolvida em tempo de leitura via `StorageBackend.url_for()` (`backend/app/core/storage.py`). Trocar de disco local para um provedor de nuvem no deploy é implementar uma nova classe ali; nada no front-end ou no schema do banco muda.
+- **A troca de galeria por cor é 100% client-side** — o back-end já manda todas as fotos do produto numa única resposta; o React apenas filtra localmente (`ProductDetailPage.tsx`) ao clicar em um swatch, sem round-trip extra à API.
+- **Em desenvolvimento, o Vite precisa de proxy para `/media`** (além de `/api`) — sem isso, as imagens servidas pelo back-end em `:8000/media/...` não carregam quando a página é aberta em `:5173` (`frontend/vite.config.ts`).
+
+## 4. Checklist de verificação end-to-end
 
 1. `psql "$DATABASE_URL" -f database/schema.sql` — cria as tabelas.
 2. `cd backend && python -m scripts.seed_database` — popula catálogo + 2 anos de histórico de vendas sintético.
@@ -75,3 +106,4 @@ Pontos-chave:
 5. `cd frontend && npm run dev` — sobe o React em `:5173`.
 6. Login como `gestor@loja.com` (senha `Senha@123`) → `/admin` deve mostrar gráficos de vendas, a previsão de tendência por categoria e sugestões de reposição pendentes.
 7. Login como um cliente (`cliente1@exemplo.com`) → navegar no catálogo, adicionar ao carrinho, finalizar compra → o pedido deve aparecer em `/meus-pedidos` e o estoque da variante comprada deve diminuir (visível em `/admin/estoque`).
+8. Como `gestor@loja.com`, em `/admin/produtos` → "Gerenciar fotos" de um produto, subir uma imagem para uma cor → abrir a ficha desse produto na loja e confirmar que a galeria troca ao clicar nessa cor.

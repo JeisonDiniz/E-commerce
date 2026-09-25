@@ -1,6 +1,5 @@
 import uuid
 from datetime import date, datetime
-from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -15,9 +14,9 @@ class MLPredictionRead(BaseModel):
     variant_id: uuid.UUID | None
     category_id: uuid.UUID | None
     prediction_date: date
-    predicted_quantity: Decimal
-    confidence_lower: Decimal | None
-    confidence_upper: Decimal | None
+    predicted_quantity: float
+    confidence_lower: float | None
+    confidence_upper: float | None
     model_version: str
     generated_at: datetime
 
@@ -28,9 +27,9 @@ class MLModelMetricRead(BaseModel):
     id: uuid.UUID
     model_type: ModelType
     model_version: str
-    mae: Decimal
-    mape: Decimal
-    rmse: Decimal | None
+    mae: float
+    mape: float
+    rmse: float | None
     training_samples: int
     trained_at: datetime
     notes: str | None

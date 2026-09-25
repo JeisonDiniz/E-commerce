@@ -3,6 +3,43 @@
 Colunas: **Backlog** → **A Fazer** → **Em Progresso** → **Em Revisão** → **Concluído**.
 Cada card abaixo corresponde a uma entrega incremental rastreável (ex: em um quadro real no Trello/GitHub Projects, cada linha vira um card com este ID).
 
+## Cronograma oficial vs entrega real
+
+O cronograma da definição do trabalho previa as entregas semana a semana até
+03/12. Na prática, todo o escopo mínimo (linhas até "Dashboard gerencial")
+foi concluído com bastante antecedência — a tabela abaixo rastreia cada
+marco do cronograma até a conclusão.
+
+| Marco do cronograma | Data prevista | Status | Evidência |
+|---|---|---|---|
+| Stack + repositório | 30/07 | ✅ Concluído | Este repositório |
+| Setup back-end/front-end | 06/08 | ✅ Concluído | BE-1, FE-1 |
+| Modelagem do banco (ER + schema) | 13/08 | ✅ Concluído | DB-1 |
+| CRUD produtos/categorias | 20/08 | ✅ Concluído | BE-2, BE-3 |
+| Estoque + autenticação | 27/08 | ✅ Concluído | BE-4, BE-5 |
+| Vitrine/catálogo (front) | 03/09 | ✅ Concluído | FE-2 |
+| Carrinho/checkout | 10/09 | ✅ Concluído | FE-3, BE-6 |
+| Painel administrativo | 17/09 | ✅ Concluído | FE-4 |
+| Dataset sintético de vendas | 24/09 | ✅ Concluído | SEED-1 |
+| Prophet | 01/10 | ✅ Concluído | ML-2 |
+| Random Forest | 08/10 | ✅ Concluído | ML-3 |
+| ML integrado à API + cache Redis | 15/10 | ✅ Concluído | ML-4, ML-5, INT-2 |
+| Dashboard gerencial | 22/10 | ✅ Concluído | FE-5 |
+| Testes gerais + validação MAE/MAPE | 29/10 | ✅ Concluído | `docs/ml-results.md`, QA-1 |
+| Ajustes finos (bugs/performance/usabilidade) | 05/11 | ✅ Concluído | IMG-1, SEC-1, FIX-1, FE-8 |
+| **Congelamento de escopo (feature freeze)** | 12/11 | ✅ **Declarado** | Ver seção abaixo |
+| Roteiro de demonstração | 19/11 | ✅ Concluído | [`docs/roteiro-demonstracao.md`](roteiro-demonstracao.md) |
+| Ensaio final / ajustes visuais | 26/11 | ⬜ A fazer pelo aluno | Usar o roteiro acima como script do ensaio |
+| Entrega final | 03/12 | ⬜ A fazer pelo aluno | Sistema já está pronto — falta o ato de apresentar |
+
+### Declaração de congelamento de escopo (feature freeze)
+
+A partir desta data, o escopo mínimo do TCC está **congelado**: nenhuma
+funcionalidade nova entra no sistema antes da apresentação — apenas
+correções de bugs encontrados no ensaio/testes finais, se houver. Qualquer
+ideia nova vira item de **Backlog** (ver seção ao final deste documento),
+não é implementada agora.
+
 ## Concluído
 
 | ID | Card | Entrega |
@@ -32,6 +69,11 @@ Cada card abaixo corresponde a uma entrega incremental rastreável (ex: em um qu
 | FE-6 | Redesign visual da loja | Identidade monocromática, tipografia editorial, header/hero/catálogo/ficha/sacola/checkout no padrão de referência |
 | BE-8 | Recuperação de senha | Tabela `password_reset_tokens`, endpoints `/auth/forgot-password` e `/auth/reset-password`, rate limiting via Redis, e-mail "console backend" |
 | FE-7 | UX de formulários de senha | `PasswordInput` (mostrar/ocultar + aviso de Caps Lock), telas de esqueci/redefinir senha, labels acessíveis |
+| IMG-1 | Imagens de produto por cor | Tabela `product_images`, abstração de storage (`app/core/storage.py`, pronta para trocar disco local por nuvem no deploy), upload/remoção validados (Pillow, tipo/tamanho, nome gerado no servidor), galeria no front que troca de foto conforme a cor selecionada, gerenciador de fotos no painel admin |
+| SEC-1 | Hardening de segurança | Correção de escalonamento de privilégio no cadastro público (`role` não é mais aceito do cliente), rate limiting de login via Redis, headers de segurança HTTP (`X-Frame-Options`, `X-Content-Type-Options`, etc.), CORS restrito a métodos/headers explícitos, guarda de `SECRET_KEY` padrão em produção — ver [`SECURITY.md`](../SECURITY.md) |
+| FIX-1 | Correção de bugs críticos pós-integração | Preços exibidos sem formatação (Decimal serializado como texto), carrinho quebrando com 500 (`MissingGreenlet`), dashboard gerencial quebrando com 500 (parâmetro de data ambíguo no asyncpg), login quebrando (incompatibilidade `passlib`/`bcrypt`), `npm run dev`/`build` quebrados (versões de `vite`/`@vitejs/plugin-react` incompatíveis com o Node instalado) |
+| FE-8 | Fluidez e acessibilidade do layout | Sidebar do painel admin responsiva (colapsa em mobile), remoção de botão de menu duplicado no header desktop, correção de acento cortado em títulos (`Ã`/`Ç`), tabelas do admin com rolagem horizontal em telas pequenas |
+| QA-1 | Testes end-to-end manuais (Playwright) | Navegação completa da loja, troca de cor/galeria, carrinho, login, painel admin e dashboard testados em um ambiente real (Postgres + Redis + API + front rodando), guiando as correções do FIX-1 |
 
 ## Em Progresso
 
@@ -39,7 +81,7 @@ _(nenhum card em progresso no momento)_
 
 ## A Fazer
 
-_(escopo mínimo do TCC concluído — ver Backlog para melhorias futuras)_
+_(escopo mínimo do TCC concluído e congelado — ver declaração de feature freeze acima; próximos passos são o ensaio e a apresentação, não código)_
 
 ## Backlog (melhorias futuras, fora do escopo mínimo do TCC)
 

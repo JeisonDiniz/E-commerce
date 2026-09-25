@@ -20,9 +20,21 @@ pydantic-settings==2.14.2
 email-validator==2.3.0
 
 # --- Autenticação ---
+# bcrypt travado em 4.0.x: passlib==1.7.4 (sem releases desde 2020) quebra
+# com bcrypt>=4.1 — o self-test interno do passlib para detectar um bug
+# antigo do bcrypt levanta "password cannot be longer than 72 bytes" no
+# primeiro login, mesmo com senhas curtas. Incompatibilidade conhecida do
+# ecossistema, não um bug deste projeto.
 passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
 python-jose[cryptography]==3.5.0
 python-multipart==0.0.32
+
+# --- Upload/validação de imagens de produto ---
+Pillow==11.0.0
+
+# --- Integrações externas (frete e pagamento) ---
+httpx==0.28.1
 
 # --- Machine Learning (usado a partir da Etapa 3) ---
 pandas==3.0.3

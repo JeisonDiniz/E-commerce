@@ -20,10 +20,13 @@ async def _get_or_create_cart(db: AsyncSession, user_id: uuid.UUID) -> Cart:
     result = await db.execute(stmt)
     cart = result.scalar_one_or_none()
     if cart is None:
+        # Objeto recém-criado já nasce com `items` vazio (não precisa
+        # atribuir manualmente) — fazer `cart.items = []` aqui disparava um
+        # lazy-load síncrono da coleção antiga fora do contexto greenlet do
+        # SQLAlchemy async, quebrando com "MissingGreenlet" em todo carrinho novo.
         cart = Cart(user_id=user_id)
         db.add(cart)
         await db.flush()
-        cart.items = []
     return cart
 
 

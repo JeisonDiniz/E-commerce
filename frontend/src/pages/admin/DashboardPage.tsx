@@ -12,10 +12,7 @@ import { TopProductsBarChart } from "../../components/charts/TopProductsBarChart
 import { CategoryTrendChart } from "../../components/charts/CategoryTrendChart";
 import { Badge } from "../../components/ui/Badge";
 import { EmptyState } from "../../components/ui/EmptyState";
-
-function formatCurrency(value: number): string {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
+import { formatCurrency } from "../../utils/currency";
 
 export function DashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -110,7 +107,8 @@ export function DashboardPage() {
         {lowStock.length === 0 ? (
           <EmptyState title="Nenhum item abaixo do estoque mínimo" />
         ) : (
-          <table className="mt-3 w-full text-left text-sm">
+          <div className="mt-3 overflow-x-auto">
+          <table className="w-full min-w-[520px] text-left text-sm">
             <thead>
               <tr className="border-b border-[var(--border-hairline)] text-xs text-[var(--text-muted)]">
                 <th className="pb-2">SKU</th>
@@ -134,6 +132,7 @@ export function DashboardPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </Card>
     </div>

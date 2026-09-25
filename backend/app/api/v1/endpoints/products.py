@@ -1,18 +1,36 @@
+import io
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from PIL import Image, UnidentifiedImageError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import require_roles
+from app.core.config import settings
 from app.core.database import get_db
-from app.models.catalog import Product, ProductVariant
+from app.core.storage import storage
+from app.models.catalog import Product, ProductImage, ProductVariant
 from app.models.enums import GenderType, SeasonType, UserRole
 from app.models.inventory import Inventory
-from app.schemas.catalog import ProductCreate, ProductRead, ProductUpdate, ProductVariantCreate, ProductVariantRead
+from app.schemas.catalog import (
+    ProductCreate,
+    ProductImageRead,
+    ProductRead,
+    ProductUpdate,
+    ProductVariantCreate,
+    ProductVariantRead,
+)
 
 router = APIRouter(prefix="/products", tags=["Catálogo"])
+
+# Formatos aceitos para upload de imagem de produto: extensão de saída fixa
+# por formato (nunca a extensão enviada pelo cliente) e limite de pixels
+# para evitar "decompression bomb" (imagem pequena em bytes que decodifica
+# em um bitmap gigante e esgota memória do servidor).
+_ALLOWED_IMAGE_TYPES = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
+Image.MAX_IMAGE_PIXELS = 40_000_000  # ~40MP — protege contra "decompression bomb"
 
 
 def _variant_to_read(variant: ProductVariant) -> ProductVariantRead:
@@ -21,9 +39,16 @@ def _variant_to_read(variant: ProductVariant) -> ProductVariantRead:
     return data
 
 
+def _image_to_read(image: ProductImage) -> ProductImageRead:
+    data = ProductImageRead.model_validate(image)
+    data.url = storage.url_for(image.storage_key)
+    return data
+
+
 def _product_to_read(product: Product) -> ProductRead:
     read = ProductRead.model_validate(product)
     read.variants = [_variant_to_read(v) for v in product.variants]
+    read.images = [_image_to_read(i) for i in product.images]
     return read
 
 
@@ -38,7 +63,8 @@ async def list_products(
     db: AsyncSession = Depends(get_db),
 ) -> list[ProductRead]:
     stmt = select(Product).options(
-        selectinload(Product.variants).selectinload(ProductVariant.inventory)
+        selectinload(Product.variants).selectinload(ProductVariant.inventory),
+        selectinload(Product.images),
     ).where(Product.active == active)
 
     if category_id is not None:
@@ -58,7 +84,10 @@ async def list_products(
 async def get_product(product_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> ProductRead:
     stmt = (
         select(Product)
-        .options(selectinload(Product.variants).selectinload(ProductVariant.inventory))
+        .options(
+            selectinload(Product.variants).selectinload(ProductVariant.inventory),
+            selectinload(Product.images),
+        )
         .where(Product.id == product_id)
     )
     result = await db.execute(stmt)
@@ -90,7 +119,10 @@ async def create_product(payload: ProductCreate, db: AsyncSession = Depends(get_
 
     stmt = (
         select(Product)
-        .options(selectinload(Product.variants).selectinload(ProductVariant.inventory))
+        .options(
+            selectinload(Product.variants).selectinload(ProductVariant.inventory),
+            selectinload(Product.images),
+        )
         .where(Product.id == product.id)
     )
     result = await db.execute(stmt)
@@ -107,7 +139,10 @@ async def update_product(
 ) -> ProductRead:
     stmt = (
         select(Product)
-        .options(selectinload(Product.variants).selectinload(ProductVariant.inventory))
+        .options(
+            selectinload(Product.variants).selectinload(ProductVariant.inventory),
+            selectinload(Product.images),
+        )
         .where(Product.id == product_id)
     )
     result = await db.execute(stmt)
@@ -145,3 +180,86 @@ async def add_variant(
     await db.refresh(variant)
     variant.inventory = inventory
     return _variant_to_read(variant)
+
+
+@router.post(
+    "/{product_id}/images",
+    response_model=ProductImageRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_roles(UserRole.manager, UserRole.admin))],
+)
+async def upload_product_image(
+    product_id: uuid.UUID,
+    file: UploadFile = File(...),
+    color: str | None = Form(None),
+    is_primary: bool = Form(False),
+    db: AsyncSession = Depends(get_db),
+) -> ProductImageRead:
+    """Upload de uma foto do produto, opcionalmente associada a uma cor.
+
+    A validação é propositalmente rigorosa porque este é o único endpoint da
+    API que recebe um arquivo binário arbitrário de fora: content-type
+    declarado é só um indício (o cliente pode mentir), então a checagem real
+    é decodificar os bytes com Pillow e re-salvar a imagem — isso garante
+    que o arquivo é de fato uma imagem válida (rejeita executáveis/scripts
+    disfarçados com extensão de imagem) e descarta metadados/qualquer
+    payload extra embutido no arquivo original.
+    """
+    product = await db.get(Product, product_id)
+    if product is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Produto não encontrado")
+
+    if file.content_type not in _ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            "Formato de imagem não suportado. Envie JPG, PNG ou WEBP.",
+        )
+
+    max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+    raw_bytes = await file.read(max_bytes + 1)
+    if len(raw_bytes) > max_bytes:
+        raise HTTPException(
+            status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            f"Imagem maior que {settings.MAX_UPLOAD_SIZE_MB}MB.",
+        )
+
+    try:
+        with Image.open(io.BytesIO(raw_bytes)) as probe:
+            probe.verify()
+        with Image.open(io.BytesIO(raw_bytes)) as img:
+            img_format = img.format
+            clean_buffer = io.BytesIO()
+            img.convert("RGB" if img_format == "JPEG" else img.mode).save(clean_buffer, format=img_format)
+            clean_bytes = clean_buffer.getvalue()
+    except (UnidentifiedImageError, OSError, ValueError):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Arquivo enviado não é uma imagem válida.")
+
+    extension = _ALLOWED_IMAGE_TYPES[file.content_type]
+    storage_key = f"products/{product_id}/{uuid.uuid4()}.{extension}"
+    storage.save(clean_bytes, storage_key)
+
+    image = ProductImage(
+        product_id=product_id,
+        color=color or None,
+        storage_key=storage_key,
+        is_primary=is_primary,
+    )
+    db.add(image)
+    await db.commit()
+    await db.refresh(image)
+    return _image_to_read(image)
+
+
+@router.delete(
+    "/{product_id}/images/{image_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_roles(UserRole.manager, UserRole.admin))],
+)
+async def delete_product_image(product_id: uuid.UUID, image_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> None:
+    image = await db.get(ProductImage, image_id)
+    if image is None or image.product_id != product_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Imagem não encontrada")
+
+    storage.delete(image.storage_key)
+    await db.delete(image)
+    await db.commit()

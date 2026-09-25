@@ -17,6 +17,7 @@ erDiagram
     CATEGORIES ||--o{ ML_PREDICTIONS : agrega
 
     PRODUCTS ||--o{ PRODUCT_VARIANTS : possui
+    PRODUCTS ||--o{ PRODUCT_IMAGES : possui
 
     PRODUCT_VARIANTS ||--|| INVENTORY : possui
     PRODUCT_VARIANTS ||--o{ INVENTORY_MOVEMENTS : movimenta
@@ -81,6 +82,17 @@ erDiagram
         varchar color
         numeric price
         numeric cost_price
+    }
+
+    PRODUCT_IMAGES {
+        uuid id PK
+        uuid product_id FK
+        varchar color "NULL = imagem geral/fallback"
+        varchar storage_key "chave relativa, não URL"
+        varchar alt_text
+        int sort_order
+        boolean is_primary
+        timestamptz created_at
     }
 
     INVENTORY {
@@ -195,3 +207,4 @@ erDiagram
 4. **`ml_predictions` e `ml_model_metrics` desacoplados dos produtos** — previsões são dados derivados (recalculáveis), não fonte de verdade. Guardá-las no Postgres (além do cache Redis) permite auditoria histórica de acurácia e comparação de versões de modelo ao longo do tempo — importante para a seção de resultados do TCC.
 5. **`restock_suggestions` com campo `status`** — implementa o requisito de que a IA **sugere**, mas a decisão final é humana: toda sugestão nasce `pendente` e só é efetivada (gerando uma `inventory_movement` de entrada) depois que um gestor aprova.
 6. **UUID como chave primária** — evita IDs sequenciais previsíveis expostos via API pública (catálogo) e facilita merge de dados entre ambientes (dev/seed/produção) sem colisão de PKs.
+7. **`product_images.color` nullable + `storage_key` (não URL)** — cada foto é associada a uma cor da variante (permitindo a galeria trocar de imagem quando o cliente escolhe a cor), com `color = NULL` reservado para uma imagem geral/fallback do produto. `storage_key` guarda sempre uma chave relativa — nunca a URL final nem o caminho absoluto em disco — para que o back-end possa trocar de armazenamento local para um provedor de nuvem no deploy sem precisar migrar os dados já cadastrados (ver `backend/app/core/storage.py`).

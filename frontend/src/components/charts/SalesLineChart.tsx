@@ -1,13 +1,10 @@
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { DailySalesPoint } from "../../types";
 import { CHROME, SEQUENTIAL_BLUE } from "./palette";
+import { formatCurrency } from "../../utils/currency";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-}
-
-function formatCurrency(value: number): string {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 // Série única (faturamento diário) -> sem legenda (o título do card já identifica a série).

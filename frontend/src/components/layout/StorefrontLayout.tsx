@@ -28,8 +28,8 @@ export function StorefrontLayout() {
           <div className="flex items-center gap-8">
             <button
               onClick={() => setMenuOpen((v) => !v)}
-              className="text-[var(--ink)]"
-              aria-label="Abrir menu"
+              className="text-[var(--ink)] sm:hidden"
+              aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
               aria-expanded={menuOpen}
             >
               {menuOpen ? <IconX /> : <IconMenu />}

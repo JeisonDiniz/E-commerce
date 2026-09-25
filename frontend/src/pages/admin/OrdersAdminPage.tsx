@@ -4,6 +4,7 @@ import type { Order, OrderStatus } from "../../types";
 import { Card } from "../../components/ui/Card";
 import { Badge } from "../../components/ui/Badge";
 import { Spinner } from "../../components/ui/Spinner";
+import { formatCurrency } from "../../utils/currency";
 
 const STATUS_OPTIONS: OrderStatus[] = ["pendente", "pago", "processando", "enviado", "entregue", "cancelado"];
 
@@ -15,10 +16,6 @@ const STATUS_BADGE: Record<OrderStatus, { status: "good" | "warning" | "critical
   entregue: { status: "good", label: "Entregue" },
   cancelado: { status: "critical", label: "Cancelado" },
 };
-
-function formatCurrency(value: number): string {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
 
 export function OrdersAdminPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -44,8 +41,8 @@ export function OrdersAdminPage() {
   return (
     <div>
       <h1 className="text-2xl font-semibold">Pedidos</h1>
-      <Card className="mt-4">
-        <table className="w-full text-left text-sm">
+      <Card className="mt-4 overflow-x-auto">
+        <table className="w-full min-w-[640px] text-left text-sm">
           <thead>
             <tr className="border-b border-[var(--border-hairline)] text-xs text-[var(--text-muted)]">
               <th className="pb-2">Pedido</th>

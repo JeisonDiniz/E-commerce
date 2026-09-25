@@ -6,6 +6,7 @@ import type { Address, PaymentMethod } from "../../types";
 import { Button } from "../../components/ui/Button";
 import { useCartStore } from "../../store/cartStore";
 import { IconArrowRight } from "../../components/ui/icons";
+import { formatCurrency } from "../../utils/currency";
 
 const PAYMENT_OPTIONS: { value: PaymentMethod; label: string }[] = [
   { value: "pix", label: "Pix" },
@@ -13,10 +14,6 @@ const PAYMENT_OPTIONS: { value: PaymentMethod; label: string }[] = [
   { value: "cartao_debito", label: "Cartão de débito" },
   { value: "boleto", label: "Boleto" },
 ];
-
-function formatCurrency(value: number): string {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }).replace("R$", "$");
-}
 
 export function CheckoutPage() {
   const navigate = useNavigate();

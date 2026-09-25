@@ -2,7 +2,7 @@ import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from redis.asyncio import Redis
 from sqlalchemy import select
@@ -13,6 +13,7 @@ from app.core.database import get_db
 from app.core.email import send_password_reset_email
 from app.core.redis_client import get_redis
 from app.core.security import create_access_token, hash_password, verify_password
+from app.models.enums import UserRole
 from app.models.user import PasswordResetToken, User
 from app.schemas.auth import ForgotPasswordRequest, ResetPasswordRequest, Token
 from app.schemas.user import UserCreate, UserRead
@@ -21,6 +22,11 @@ router = APIRouter(prefix="/auth", tags=["Autenticação"])
 
 _FORGOT_PASSWORD_MAX_ATTEMPTS = 3
 _FORGOT_PASSWORD_WINDOW_SECONDS = 3600
+
+# Limite de tentativas de login por e-mail+IP, para dificultar força bruta
+# de senha (o mesmo padrão de contador no Redis já usado em forgot_password).
+_LOGIN_MAX_ATTEMPTS = 5
+_LOGIN_WINDOW_SECONDS = 900
 
 
 def _hash_token(raw_token: str) -> str:
@@ -33,11 +39,14 @@ async def register(payload: UserCreate, db: AsyncSession = Depends(get_db)) -> U
     if existing.scalar_one_or_none() is not None:
         raise HTTPException(status.HTTP_409_CONFLICT, "E-mail já cadastrado")
 
+    # Role SEMPRE customer no cadastro público — nunca lido do payload do
+    # cliente. Contas staff/manager/admin são provisionadas só via seed
+    # script/banco (ver app/schemas/user.py::UserCreate).
     user = User(
         name=payload.name,
         email=payload.email,
         password_hash=hash_password(payload.password),
-        role=payload.role,
+        role=UserRole.customer,
     )
     db.add(user)
     await db.commit()
@@ -47,9 +56,23 @@ async def register(payload: UserCreate, db: AsyncSession = Depends(get_db)) -> U
 
 @router.post("/login", response_model=Token)
 async def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
 ) -> Token:
+    client_ip = request.client.host if request.client else "unknown"
+    rate_limit_key = f"login-attempts:{form_data.username.lower()}:{client_ip}"
+
+    attempts = await redis.incr(rate_limit_key)
+    if attempts == 1:
+        await redis.expire(rate_limit_key, _LOGIN_WINDOW_SECONDS)
+    if attempts > _LOGIN_MAX_ATTEMPTS:
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "Muitas tentativas de login. Tente novamente mais tarde.",
+        )
+
     result = await db.execute(select(User).where(User.email == form_data.username))
     user = result.scalar_one_or_none()
 
@@ -59,6 +82,9 @@ async def login(
             "E-mail ou senha inválidos",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    # Login bem-sucedido: zera o contador para não penalizar tentativas futuras legítimas.
+    await redis.delete(rate_limit_key)
 
     access_token = create_access_token(subject=str(user.id), role=user.role.value)
     return Token(access_token=access_token)

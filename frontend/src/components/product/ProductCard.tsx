@@ -1,19 +1,26 @@
 import { Link } from "react-router-dom";
 import type { Product } from "../../types";
 import { colorToHex } from "../../utils/colors";
-
-function formatCurrency(value: number): string {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }).replace("R$", "$");
-}
+import { formatCurrency } from "../../utils/currency";
 
 export function ProductCard({ product }: { product: Product }) {
   const totalStock = product.variants.reduce((sum, v) => sum + (v.stock_quantity ?? 0), 0);
   const colors = [...new Set(product.variants.map((v) => v.color))];
+  const coverImage = product.images.find((img) => img.is_primary) ?? product.images[0];
 
   return (
     <Link to={`/produtos/${product.id}`} className="group block">
       <div className="flex aspect-[4/5] items-center justify-center overflow-hidden rounded-2xl bg-[#e9e7e0] text-5xl transition-transform duration-200 group-hover:-translate-y-1">
-        👕
+        {coverImage ? (
+          <img
+            src={coverImage.url}
+            alt={coverImage.alt_text ?? product.name}
+            loading="lazy"
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          "👕"
+        )}
       </div>
 
       <div className="mt-3 flex items-center gap-1.5">

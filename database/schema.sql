@@ -153,6 +153,13 @@ CREATE TABLE product_variants (
     color       VARCHAR(50) NOT NULL,
     price       NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
     cost_price  NUMERIC(10, 2) CHECK (cost_price >= 0),
+    -- Peso/dimensões da embalagem desta variante — usados para cotar frete
+    -- (Melhor Envio) somando os itens do carrinho. Valores padrão razoáveis
+    -- para uma peça de roupa dobrada, ajustáveis por produto no cadastro.
+    weight_grams INTEGER NOT NULL DEFAULT 300 CHECK (weight_grams > 0),
+    height_cm   NUMERIC(6, 2) NOT NULL DEFAULT 3 CHECK (height_cm > 0),
+    width_cm    NUMERIC(6, 2) NOT NULL DEFAULT 25 CHECK (width_cm > 0),
+    length_cm   NUMERIC(6, 2) NOT NULL DEFAULT 35 CHECK (length_cm > 0),
     active      BOOLEAN NOT NULL DEFAULT TRUE,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -165,6 +172,24 @@ CREATE TRIGGER trg_variants_updated_at
 
 CREATE INDEX idx_variants_product ON product_variants(product_id);
 CREATE INDEX idx_variants_size_color ON product_variants(size, color);
+
+-- Fotos do produto, agrupadas por cor (color = NULL é a imagem "geral",
+-- usada como fallback quando a cor selecionada ainda não tem foto própria).
+-- `storage_key` guarda sempre uma chave RELATIVA (nunca URL absoluta) para
+-- que o back-end possa trocar de storage local para nuvem (S3 etc.) no
+-- futuro sem precisar migrar os dados já cadastrados.
+CREATE TABLE product_images (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    product_id  UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    color       VARCHAR(50),
+    storage_key VARCHAR(500) NOT NULL,
+    alt_text    VARCHAR(200),
+    sort_order  INTEGER NOT NULL DEFAULT 0,
+    is_primary  BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_product_images_product_color ON product_images(product_id, color);
 
 -- =====================================================================
 -- 3. ESTOQUE: SALDO ATUAL + LIVRO-RAZÃO DE MOVIMENTAÇÕES
@@ -254,6 +279,11 @@ CREATE TABLE orders (
     shipping_address_id UUID NOT NULL REFERENCES addresses(id) ON DELETE RESTRICT,
     status              order_status NOT NULL DEFAULT 'pendente',
     total_amount        NUMERIC(10, 2) NOT NULL CHECK (total_amount >= 0),
+    -- Frete escolhido no checkout (cotado via Melhor Envio antes de criar o
+    -- pedido) — total_amount já inclui shipping_cost.
+    shipping_service        VARCHAR(60),
+    shipping_cost           NUMERIC(10, 2) NOT NULL DEFAULT 0 CHECK (shipping_cost >= 0),
+    shipping_deadline_days  INTEGER,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -292,10 +322,22 @@ CREATE TABLE payments (
     status     payment_status NOT NULL DEFAULT 'pendente',
     amount     NUMERIC(10, 2) NOT NULL CHECK (amount >= 0),
     paid_at    TIMESTAMPTZ,
+    -- Dados do gateway (Mercado Pago) — NUNCA número de cartão/CVV, que
+    -- nunca chegam ao back-end (tokenizados no navegador do cliente).
+    -- `gateway_payment_id` é UNIQUE: garante idempotência quando o mesmo
+    -- webhook chega duplicado (comportamento normal de gateways).
+    gateway              VARCHAR(30) NOT NULL DEFAULT 'mercadopago',
+    gateway_payment_id   VARCHAR(100) UNIQUE,
+    installments         INTEGER,
+    card_brand           VARCHAR(20),
+    card_last4           VARCHAR(4),
+    pix_qr_code          TEXT,
+    pix_qr_code_base64   TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX idx_payments_order ON payments(order_id);
+CREATE INDEX idx_payments_gateway_payment_id ON payments(gateway_payment_id);
 
 -- =====================================================================
 -- 6. MACHINE LEARNING: PREVISÕES, MÉTRICAS E SUGESTÕES DE REPOSIÇÃO

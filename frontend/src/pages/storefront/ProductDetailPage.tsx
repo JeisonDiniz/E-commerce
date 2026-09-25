@@ -7,10 +7,7 @@ import { Button } from "../../components/ui/Button";
 import { useAuthStore } from "../../store/authStore";
 import { useCartStore } from "../../store/cartStore";
 import { colorToHex } from "../../utils/colors";
-
-function formatCurrency(value: number): string {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }).replace("R$", "$");
-}
+import { formatCurrency } from "../../utils/currency";
 
 export function ProductDetailPage() {
   const { productId } = useParams<{ productId: string }>();
@@ -21,6 +18,7 @@ export function ProductDetailPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [selectedColor, setSelectedColor] = useState<string>("");
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   useEffect(() => {
@@ -30,12 +28,30 @@ export function ProductDetailPage() {
   const sizes = useMemo(() => [...new Set(product?.variants.map((v) => v.size) ?? [])], [product]);
   const colors = useMemo(() => [...new Set(product?.variants.map((v) => v.color) ?? [])], [product]);
 
+  // Galeria da cor selecionada: fotos da própria cor > fotos "gerais"
+  // (color=null) > qualquer foto do produto > nenhuma (mostra placeholder).
+  // Trocar a cor sempre volta pra primeira foto da nova galeria.
+  const gallery = useMemo(() => {
+    if (!product) return [];
+    const byColor = product.images.filter((img) => img.color === selectedColor);
+    if (byColor.length > 0) return byColor;
+    const general = product.images.filter((img) => img.color === null);
+    if (general.length > 0) return general;
+    return product.images;
+  }, [product, selectedColor]);
+
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [selectedColor]);
+
   const selectedVariant = useMemo(
     () => product?.variants.find((v) => v.size === selectedSize && v.color === selectedColor),
     [product, selectedSize, selectedColor]
   );
 
   if (!product) return <Spinner />;
+
+  const activeImage = gallery[activeImageIndex] ?? gallery[0];
 
   async function handleAddToCart() {
     if (!user) {
@@ -53,17 +69,43 @@ export function ProductDetailPage() {
   return (
     <div className="mx-auto grid max-w-6xl gap-10 md:grid-cols-[80px_1fr_380px]">
       {/* Miniaturas */}
-      <div className="order-2 flex gap-3 md:order-1 md:flex-col">
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="flex aspect-square w-16 shrink-0 items-center justify-center rounded-lg bg-[#e9e7e0] text-xl md:w-full">
+      <div className="order-2 flex gap-3 overflow-x-auto md:order-1 md:flex-col md:overflow-visible">
+        {gallery.length > 0 ? (
+          gallery.map((img, i) => (
+            <button
+              key={img.id}
+              onClick={() => setActiveImageIndex(i)}
+              className={`flex aspect-square w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#e9e7e0] md:w-full ${
+                i === activeImageIndex ? "ring-2 ring-[var(--ink)]" : "ring-1 ring-black/10"
+              }`}
+            >
+              <img
+                src={img.url}
+                alt={img.alt_text ?? product.name}
+                loading="lazy"
+                className="h-full w-full object-cover"
+              />
+            </button>
+          ))
+        ) : (
+          <div className="flex aspect-square w-16 shrink-0 items-center justify-center rounded-lg bg-[#e9e7e0] text-xl text-[var(--text-muted)] md:w-full">
             👕
           </div>
-        ))}
+        )}
       </div>
 
       {/* Imagem principal */}
-      <div className="order-1 flex aspect-square items-center justify-center rounded-2xl bg-[#e9e7e0] text-8xl md:order-2">
-        👕
+      <div className="order-1 flex aspect-square items-center justify-center overflow-hidden rounded-2xl bg-[#e9e7e0] md:order-2">
+        {activeImage ? (
+          <img
+            key={activeImage.id}
+            src={activeImage.url}
+            alt={activeImage.alt_text ?? product.name}
+            className="h-full w-full animate-[fadein_0.2s_ease-in-out] object-cover"
+          />
+        ) : (
+          <span className="text-8xl text-[var(--text-muted)]">👕</span>
+        )}
       </div>
 
       {/* Info */}

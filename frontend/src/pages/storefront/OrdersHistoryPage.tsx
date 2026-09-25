@@ -6,10 +6,7 @@ import { Card } from "../../components/ui/Card";
 import { Badge } from "../../components/ui/Badge";
 import { Spinner } from "../../components/ui/Spinner";
 import { EmptyState } from "../../components/ui/EmptyState";
-
-function formatCurrency(value: number): string {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
+import { formatCurrency } from "../../utils/currency";
 
 const STATUS_BADGE: Record<Order["status"], { status: "good" | "warning" | "critical" | "neutral"; label: string }> = {
   pendente: { status: "neutral", label: "Pendente" },

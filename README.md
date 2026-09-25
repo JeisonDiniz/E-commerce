@@ -41,15 +41,24 @@ Justificativas técnicas detalhadas de cada decisão de arquitetura estão nos
 próprios READMEs de cada módulo (linkados abaixo) — foram escritas para
 serem citadas na defesa do TCC.
 
+## Status do projeto
+
+Escopo mínimo do TCC **concluído e congelado** (feature freeze) — o sistema
+já roda ponta a ponta (loja, painel administrativo, ML). O que resta é
+ensaio e apresentação, não desenvolvimento. Acompanhamento marco a marco do
+cronograma em [`docs/kanban.md`](docs/kanban.md#cronograma-oficial-vs-entrega-real)
+e o passo a passo da demo em [`docs/roteiro-demonstracao.md`](docs/roteiro-demonstracao.md).
+
 ## Estrutura do repositório
 
 ```
 database/
 ├── schema.sql          # DDL completo do PostgreSQL (Etapa 1)
+├── migrations/           # alterações incrementais para bancos já provisionados
 └── seed/                # gerador do dataset sintético de vendas (Etapa 6)
 backend/
 ├── app/
-│   ├── core/             # config, conexão DB/Redis, segurança (JWT)
+│   ├── core/             # config, conexão DB/Redis, segurança (JWT), storage de imagens
 │   ├── models/            # SQLAlchemy — espelha database/schema.sql
 │   ├── schemas/            # Pydantic — contratos da API
 │   ├── services/            # regras de negócio (checkout, movimentação de estoque)
@@ -61,9 +70,11 @@ frontend/
 └── src/                        # loja + painel admin (Etapa 4) — ver frontend/README.md
 docs/
 ├── er-diagram.md                # diagrama ER + decisões de modelagem
-├── kanban.md                     # quadro Kanban do projeto (metodologia)
+├── kanban.md                     # quadro Kanban do projeto + cronograma × entrega real
 ├── ml-results.md                  # métricas reais dos modelos + discussão para a defesa
+├── roteiro-demonstracao.md         # script da demo ao vivo para a defesa do TCC
 └── integration.md                   # como as camadas se conectam (Etapa 5)
+SECURITY.md                            # o que está protegido no código e o que cabe ao deploy
 ```
 
 ## Quickstart (rodando tudo localmente)

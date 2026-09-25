@@ -77,7 +77,8 @@ export function RestockSuggestionsPage() {
       {reviewed.length > 0 && (
         <Card className="mt-4">
           <h2 className="text-sm font-semibold">Histórico de revisões</h2>
-          <table className="mt-3 w-full text-left text-sm">
+          <div className="mt-3 overflow-x-auto">
+          <table className="w-full min-w-[420px] text-left text-sm">
             <thead>
               <tr className="border-b border-[var(--border-hairline)] text-xs text-[var(--text-muted)]">
                 <th className="pb-2">Variante</th>
@@ -97,6 +98,7 @@ export function RestockSuggestionsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </Card>
       )}
     </div>
