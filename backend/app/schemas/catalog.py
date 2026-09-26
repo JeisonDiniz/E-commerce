@@ -18,7 +18,11 @@ class CategoryRead(CategoryCreate):
 
 
 class ProductVariantCreate(BaseModel):
-    sku: str
+    # Opcional: se não informado, o back-end gera um SKU único sozinho (ver
+    # products.py::_generate_sku) — evita que o cadastro trave por causa de
+    # um SKU digitado errado ou repetido sem querer, num campo que quem
+    # cadastra roupa manualmente não tem motivo forte pra escolher à mão.
+    sku: str | None = None
     size: SizeType
     color: str
     price: float

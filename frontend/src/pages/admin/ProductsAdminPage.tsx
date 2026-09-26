@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { api } from "../../api/client";
-import { deleteProductImage, fetchCategories, fetchProducts, uploadProductImage } from "../../api/catalog";
+import { isAxiosError } from "axios";
+import { createCategory, createProduct, deleteProductImage, fetchCategories, fetchProducts, uploadProductImage } from "../../api/catalog";
 import type { Category, GenderType, Product, SeasonType, SizeType } from "../../types";
 import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -10,6 +10,27 @@ import { formatCurrency } from "../../utils/currency";
 
 const MAX_IMAGE_MB = 5;
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+// O back-end sempre devolve o motivo do erro em `detail` (ver
+// _friendly_integrity_error no products.py) — mostrar isso em vez de um
+// texto fixo evita adivinhar errado a causa (ex.: achar que é o SKU quando
+// na verdade era a categoria, ou um preço inválido).
+function extractErrorMessage(error: unknown, fallback: string): string {
+  if (isAxiosError(error) && typeof error.response?.data?.detail === "string") {
+    return error.response.data.detail;
+  }
+  return fallback;
+}
+
+function validateImageFile(file: File): string | null {
+  if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+    return "Formato não suportado. Use JPG, PNG ou WEBP.";
+  }
+  if (file.size > MAX_IMAGE_MB * 1024 * 1024) {
+    return `Imagem maior que ${MAX_IMAGE_MB}MB.`;
+  }
+  return null;
+}
 
 function ProductImageManager({ product, onChanged }: { product: Product; onChanged: () => void }) {
   const variantColors = [...new Set(product.variants.map((v) => v.color))];
@@ -21,15 +42,9 @@ function ProductImageManager({ product, onChanged }: { product: Product; onChang
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = e.target.files?.[0] ?? null;
-    setError(null);
-    if (selected && !ACCEPTED_IMAGE_TYPES.includes(selected.type)) {
-      setError("Formato não suportado. Use JPG, PNG ou WEBP.");
-      setFile(null);
-      setPreview(null);
-      return;
-    }
-    if (selected && selected.size > MAX_IMAGE_MB * 1024 * 1024) {
-      setError(`Imagem maior que ${MAX_IMAGE_MB}MB.`);
+    const validationError = selected ? validateImageFile(selected) : null;
+    setError(validationError);
+    if (validationError) {
       setFile(null);
       setPreview(null);
       return;
@@ -151,6 +166,22 @@ export function ProductsAdminPage() {
     size: "M" as SizeType,
     color: "",
   });
+  const [submitting, setSubmitting] = useState(false);
+
+  // Criar categoria sem sair do cadastro de produto — antes disso, quem
+  // instalava a loja do zero (sem nenhuma categoria ainda) ficava com o
+  // select vazio e o cadastro falhava silenciosamente (category_id ia em
+  // branco pro back-end), aparecendo como se fosse um erro de SKU.
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [creatingCategory, setCreatingCategory] = useState(false);
+
+  // Foto já anexada no próprio cadastro (em vez de só depois, em "Gerenciar
+  // fotos") — enviada logo após o produto ser criado, associada à cor da
+  // primeira variante.
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   function load() {
     setLoading(true);
@@ -173,23 +204,90 @@ export function ProductsAdminPage() {
 
   useEffect(load, []);
 
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const selected = e.target.files?.[0] ?? null;
+    const validationError = selected ? validateImageFile(selected) : null;
+    setImageError(validationError);
+    if (validationError) {
+      setImageFile(null);
+      setImagePreview(null);
+      return;
+    }
+    setImageFile(selected);
+    setImagePreview(selected ? URL.createObjectURL(selected) : null);
+  }
+
+  async function handleCreateCategory() {
+    const name = newCategoryName.trim();
+    if (!name) return;
+    setCreatingCategory(true);
+    try {
+      const category = await createCategory(name);
+      setCategories((prev) => [...prev, category].sort((a, b) => a.name.localeCompare(b.name)));
+      setForm((f) => ({ ...f, category_id: category.id }));
+      setNewCategoryName("");
+      setShowNewCategory(false);
+    } catch (error) {
+      setFeedback(extractErrorMessage(error, "Erro ao criar categoria."));
+    } finally {
+      setCreatingCategory(false);
+    }
+  }
+
+  // Mantém categoria/gênero/estação (quem cadastra costuma lançar várias
+  // peças seguidas da mesma leva) e só limpa o que é específico de cada item.
+  function resetItemFields() {
+    setForm((f) => ({ ...f, name: "", brand: "", base_price: "", sku: "", color: "" }));
+    setImageFile(null);
+    setImagePreview(null);
+    setImageError(null);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!form.category_id) {
+      setFeedback("Escolha ou crie uma categoria antes de continuar.");
+      return;
+    }
+
+    setSubmitting(true);
+    setFeedback(null);
     try {
-      await api.post("/products", {
+      const created = await createProduct({
         category_id: form.category_id,
         name: form.name,
-        brand: form.brand,
+        brand: form.brand || undefined,
         gender: form.gender,
         season: form.season,
         base_price: Number(form.base_price),
-        variants: [{ sku: form.sku, size: form.size, color: form.color, price: Number(form.base_price) }],
+        variants: [
+          {
+            sku: form.sku.trim() || undefined,
+            size: form.size,
+            color: form.color,
+            price: Number(form.base_price),
+          },
+        ],
       });
+
+      if (imageFile) {
+        try {
+          await uploadProductImage(created.id, imageFile, form.color || null, true);
+        } catch {
+          setFeedback('Produto criado, mas a foto não pôde ser enviada. Tente de novo em "Gerenciar fotos".');
+          resetItemFields();
+          load();
+          return;
+        }
+      }
+
       setFeedback("Produto criado com sucesso.");
-      setShowForm(false);
+      resetItemFields();
       load();
-    } catch {
-      setFeedback("Erro ao criar produto. Verifique se o SKU já existe.");
+    } catch (error) {
+      setFeedback(extractErrorMessage(error, "Erro ao criar produto."));
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -207,17 +305,58 @@ export function ProductsAdminPage() {
       {showForm && (
         <Card className="mt-4">
           <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-3">
-            <select
-              className="col-span-2 rounded-lg border border-neutral-300 px-3 py-2 text-sm"
-              value={form.category_id}
-              onChange={(e) => setForm({ ...form, category_id: e.target.value })}
-            >
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+            {categories.length === 0 && !showNewCategory && (
+              <p className="col-span-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                Nenhuma categoria cadastrada ainda — crie uma abaixo antes de continuar.
+              </p>
+            )}
+            <div className="col-span-2 flex items-center gap-2">
+              <select
+                className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm disabled:bg-neutral-100"
+                value={form.category_id}
+                disabled={categories.length === 0}
+                onChange={(e) => setForm({ ...form, category_id: e.target.value })}
+              >
+                {categories.length === 0 && <option value="">Nenhuma categoria ainda</option>}
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              <Button
+                type="button"
+                variant="secondary"
+                className="shrink-0 px-3 py-2 text-xs"
+                onClick={() => setShowNewCategory((v) => !v)}
+              >
+                {showNewCategory ? "Cancelar" : "+ Nova categoria"}
+              </Button>
+            </div>
+            {showNewCategory && (
+              <div className="col-span-2 flex items-center gap-2 rounded-lg border border-dashed border-neutral-300 p-2">
+                <input
+                  className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+                  placeholder="Nome da categoria (ex.: Camisetas)"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleCreateCategory();
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  className="shrink-0 px-4 py-2 text-xs"
+                  disabled={!newCategoryName.trim() || creatingCategory}
+                  onClick={handleCreateCategory}
+                >
+                  {creatingCategory ? "Criando..." : "Criar"}
+                </Button>
+              </div>
+            )}
             <input
               className="col-span-2 rounded-lg border border-neutral-300 px-3 py-2 text-sm"
               placeholder="Nome do produto"
@@ -265,8 +404,7 @@ export function ProductsAdminPage() {
             <p className="col-span-2 mt-2 text-xs font-medium text-[var(--text-muted)]">Primeira variante</p>
             <input
               className="rounded-lg border border-neutral-300 px-3 py-2 text-sm"
-              placeholder="SKU"
-              required
+              placeholder="SKU (opcional — gerado automaticamente)"
               value={form.sku}
               onChange={(e) => setForm({ ...form, sku: e.target.value })}
             />
@@ -288,8 +426,26 @@ export function ProductsAdminPage() {
                 </option>
               ))}
             </select>
-            <Button type="submit" className="col-span-2">
-              Criar produto
+
+            <div className="col-span-2 flex items-center gap-3 rounded-lg border border-dashed border-neutral-300 p-3">
+              {imagePreview ? (
+                <img src={imagePreview} alt="Pré-visualização" className="h-14 w-14 shrink-0 rounded-lg object-cover" />
+              ) : (
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-[10px] text-[var(--text-muted)]">
+                  Sem foto
+                </div>
+              )}
+              <div className="flex-1">
+                <input type="file" accept={ACCEPTED_IMAGE_TYPES.join(",")} onChange={handleImageChange} className="text-xs" />
+                <p className="mt-1 text-xs text-[var(--text-muted)]">
+                  Opcional — a foto é enviada assim que o produto for criado (associada à cor acima).
+                </p>
+                {imageError && <p className="mt-1 text-xs text-red-600">{imageError}</p>}
+              </div>
+            </div>
+
+            <Button type="submit" className="col-span-2" disabled={submitting}>
+              {submitting ? "Salvando..." : "Criar produto"}
             </Button>
           </form>
         </Card>

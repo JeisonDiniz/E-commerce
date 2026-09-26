@@ -1,9 +1,11 @@
 import io
+import re
 import uuid
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from PIL import Image, UnidentifiedImageError
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -31,6 +33,30 @@ router = APIRouter(prefix="/products", tags=["Catálogo"])
 # em um bitmap gigante e esgota memória do servidor).
 _ALLOWED_IMAGE_TYPES = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
 Image.MAX_IMAGE_PIXELS = 40_000_000  # ~40MP — protege contra "decompression bomb"
+
+
+def _generate_sku(product_name: str) -> str:
+    """SKU legível e praticamente único, usado quando quem cadastra não
+    informa um (ver ProductVariantCreate.sku). O prefixo vem do nome do
+    produto só pra facilitar reconhecer o item numa lista de estoque; a
+    unicidade de fato vem do sufixo aleatório — a constraint UNIQUE do
+    banco (ver _friendly_integrity_error) ainda é a garantia real."""
+    prefix = re.sub(r"[^A-Z0-9]+", "-", product_name.upper()).strip("-")[:20] or "PROD"
+    return f"{prefix}-{uuid.uuid4().hex[:8].upper()}"
+
+
+def _friendly_integrity_error(error: IntegrityError) -> HTTPException:
+    """Traduz a violação de constraint mais provável (índice UNIQUE) numa
+    mensagem que quem está cadastrando entende, em vez do 500 cru que o
+    driver do Postgres devolveria (ver create_product/add_variant)."""
+    detail = str(error.orig).lower()
+    if "sku" in detail:
+        message = "Já existe uma variante com esse SKU. Deixe o campo em branco para gerar um automaticamente."
+    elif "product_id" in detail and "size" in detail and "color" in detail:
+        message = "Este produto já tem uma variante com esse mesmo tamanho e cor."
+    else:
+        message = "Não foi possível salvar: um dos valores já está em uso ou é inválido."
+    return HTTPException(status.HTTP_409_CONFLICT, message)
 
 
 def _variant_to_read(variant: ProductVariant) -> ProductVariantRead:
@@ -107,15 +133,22 @@ async def create_product(payload: ProductCreate, db: AsyncSession = Depends(get_
     product_data = payload.model_dump(exclude={"variants"})
     product = Product(**product_data)
     db.add(product)
-    await db.flush()  # garante product.id para as variantes
 
-    for variant_payload in payload.variants:
-        variant = ProductVariant(product_id=product.id, **variant_payload.model_dump())
-        db.add(variant)
-        await db.flush()  # garante variant.id para o registro de estoque
-        db.add(Inventory(variant_id=variant.id, quantity=0))
+    try:
+        await db.flush()  # garante product.id para as variantes
 
-    await db.commit()
+        for variant_payload in payload.variants:
+            variant_data = variant_payload.model_dump()
+            variant_data["sku"] = variant_data["sku"] or _generate_sku(product.name)
+            variant = ProductVariant(product_id=product.id, **variant_data)
+            db.add(variant)
+            await db.flush()  # garante variant.id para o registro de estoque
+            db.add(Inventory(variant_id=variant.id, quantity=0))
+
+        await db.commit()
+    except IntegrityError as error:
+        await db.rollback()
+        raise _friendly_integrity_error(error) from error
 
     stmt = (
         select(Product)
@@ -171,12 +204,20 @@ async def add_variant(
     if product is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Produto não encontrado")
 
-    variant = ProductVariant(product_id=product_id, **payload.model_dump())
+    variant_data = payload.model_dump()
+    variant_data["sku"] = variant_data["sku"] or _generate_sku(product.name)
+    variant = ProductVariant(product_id=product_id, **variant_data)
     db.add(variant)
-    await db.flush()
-    inventory = Inventory(variant_id=variant.id, quantity=0)
-    db.add(inventory)
-    await db.commit()
+
+    try:
+        await db.flush()
+        inventory = Inventory(variant_id=variant.id, quantity=0)
+        db.add(inventory)
+        await db.commit()
+    except IntegrityError as error:
+        await db.rollback()
+        raise _friendly_integrity_error(error) from error
+
     await db.refresh(variant)
     variant.inventory = inventory
     return _variant_to_read(variant)
