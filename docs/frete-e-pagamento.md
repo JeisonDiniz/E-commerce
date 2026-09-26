@@ -398,7 +398,7 @@ Ordem recomendada, cada item é incremental e testável isoladamente:
 6. Job de reconciliação (roda a cada alguns minutos, consulta na API do
    Mercado Pago qualquer pagamento "pendente" há mais de N minutos) como
    rede de segurança para webhooks perdidos.
-7. Atualizar `SECURITY.md` e `docs/kanban.md` com os novos cards.
+7. Atualizar `SECURITY.md` com os novos itens.
 
 Este documento cobre o **design**; me avise quando quiser que eu implemente
 algum desses itens no código.

@@ -44,10 +44,7 @@ serem citadas na defesa do TCC.
 ## Status do projeto
 
 Escopo mínimo do TCC **concluído e congelado** (feature freeze) — o sistema
-já roda ponta a ponta (loja, painel administrativo, ML). O que resta é
-ensaio e apresentação, não desenvolvimento. Acompanhamento marco a marco do
-cronograma em [`docs/kanban.md`](docs/kanban.md#cronograma-oficial-vs-entrega-real)
-e o passo a passo da demo em [`docs/roteiro-demonstracao.md`](docs/roteiro-demonstracao.md).
+já roda ponta a ponta (loja, painel administrativo, ML).
 
 ## Estrutura do repositório
 
@@ -70,10 +67,11 @@ frontend/
 └── src/                        # loja + painel admin (Etapa 4) — ver frontend/README.md
 docs/
 ├── er-diagram.md                # diagrama ER + decisões de modelagem
-├── kanban.md                     # quadro Kanban do projeto + cronograma × entrega real
 ├── ml-results.md                  # métricas reais dos modelos + discussão para a defesa
-├── roteiro-demonstracao.md         # script da demo ao vivo para a defesa do TCC
-└── integration.md                   # como as camadas se conectam (Etapa 5)
+├── integration.md                   # como as camadas se conectam (Etapa 5)
+├── frete-e-pagamento.md               # integração com Melhor Envio e Mercado Pago
+├── rodando-no-windows.md                # guia passo a passo para Windows/PowerShell
+└── deploy-railway.md                      # como publicar o projeto no Railway
 SECURITY.md                            # o que está protegido no código e o que cabe ao deploy
 ```
 
@@ -106,12 +104,6 @@ npm run dev                                       # loja + painel admin em http:
 
 Veja [`docs/integration.md`](docs/integration.md) para o checklist completo
 de verificação end-to-end e os diagramas de sequência de cada fluxo.
-
-## Metodologia
-
-O desenvolvimento foi organizado em quadro Kanban (Backlog → A Fazer → Em
-Progresso → Em Revisão → Concluído), com entregas incrementais por módulo —
-ver [`docs/kanban.md`](docs/kanban.md).
 
 ## Contas de demonstração
 

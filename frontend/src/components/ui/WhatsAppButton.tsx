@@ -3,7 +3,7 @@ import { IconWhatsApp } from "./icons";
 // TODO: trocar pelo número real da loja (código do país + DDD + número,
 // só dígitos — ex.: 5511987654321). Enquanto for esse valor de exemplo, o
 // botão continua visível mas não deve ser considerado funcional.
-const WHATSAPP_NUMBER = "5511999999999";
+const WHATSAPP_NUMBER = "554796351565";
 const DEFAULT_MESSAGE = "Olá! Vim do site e gostaria de tirar uma dúvida sobre um produto.";
 
 /**
