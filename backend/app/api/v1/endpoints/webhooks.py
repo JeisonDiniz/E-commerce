@@ -11,8 +11,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.email import send_payment_approved_email
 from app.models.commerce import Order, Payment
 from app.models.enums import OrderStatus, PaymentStatus
+from app.models.user import User
 from app.services.payment_service import fetch_payment, verify_webhook_signature
 
 router = APIRouter(prefix="/webhooks", tags=["Webhooks"])
@@ -58,10 +60,19 @@ async def mercadopago_webhook(
     new_status = _GATEWAY_STATUS_MAP.get(gateway_data.get("status"))
     if new_status and payment.status != new_status:
         payment.status = new_status
+        order = None
         if new_status == PaymentStatus.aprovado:
             order = await db.get(Order, payment.order_id)
             if order is not None:
                 order.status = OrderStatus.pago
         await db.commit()
+
+        # "if payment.status != new_status" acima garante que isso só dispara
+        # na TRANSIÇÃO pra aprovado, nunca de novo num webhook duplicado do
+        # mesmo evento (comum nesse tipo de integração).
+        if new_status == PaymentStatus.aprovado and order is not None:
+            user = await db.get(User, order.user_id)
+            if user is not None:
+                await send_payment_approved_email(user.email, order.id, float(payment.amount))
 
     return {"status": "processed"}

@@ -12,9 +12,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.email import send_order_confirmation_email
 from app.models.commerce import Cart, Order, OrderItem, Payment
 from app.models.enums import MovementType, PaymentMethod, PaymentStatus
 from app.models.catalog import ProductVariant
+from app.models.user import User
 from app.services.inventory_service import apply_movement
 
 
@@ -88,4 +90,11 @@ async def checkout(
 
     await db.commit()
     await db.refresh(order)
+
+    # E-mail é "best effort" (ver app/core/email.py): nunca deve impedir o
+    # checkout de concluir, mesmo se o envio falhar.
+    user = await db.get(User, user_id)
+    if user is not None:
+        await send_order_confirmation_email(user.email, order.id, float(order.total_amount))
+
     return order

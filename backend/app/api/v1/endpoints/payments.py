@@ -7,6 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
+from app.core.email import send_payment_approved_email
 from app.models.commerce import Order, Payment
 from app.models.enums import OrderStatus, PaymentStatus
 from app.models.user import User
@@ -79,4 +80,8 @@ async def pay_with_card(
 
     await db.commit()
     await db.refresh(payment)
+
+    if new_status == PaymentStatus.aprovado:
+        await send_payment_approved_email(current_user.email, order.id, float(payment.amount))
+
     return payment

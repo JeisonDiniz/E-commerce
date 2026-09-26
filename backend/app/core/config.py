@@ -48,6 +48,12 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
+    # Bloqueio de conta após tentativas de login malsucedidas (força bruta).
+    # Contado por CONTA (e-mail), não por IP+conta — um atacante trocando de
+    # IP não reseta o contador. Ver app/api/v1/endpoints/auth.py::login.
+    AUTH_MAX_FAILED_ATTEMPTS: int = 5
+    AUTH_LOCKOUT_SECONDS: int = 900
+
     # CORS
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
 

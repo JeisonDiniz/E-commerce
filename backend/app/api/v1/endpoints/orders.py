@@ -7,6 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_current_user, require_roles
 from app.core.database import get_db
+from app.core.email import send_order_shipped_email
 from app.models.commerce import Order, Payment
 from app.models.enums import OrderStatus, UserRole
 from app.models.user import User
@@ -91,7 +92,16 @@ async def update_order_status(order_id: uuid.UUID, new_status: OrderStatus, db: 
     if order is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Pedido não encontrado")
 
+    previous_status = order.status
     order.status = new_status
     await db.commit()
     await db.refresh(order)
+
+    # Só na TRANSIÇÃO pra "enviado" — evita reenviar o e-mail se o status for
+    # setado pra "enviado" mais de uma vez por engano no painel admin.
+    if new_status == OrderStatus.enviado and previous_status != OrderStatus.enviado:
+        user = await db.get(User, order.user_id)
+        if user is not None:
+            await send_order_shipped_email(user.email, order.id, order.shipping_service, order.shipping_deadline_days)
+
     return order

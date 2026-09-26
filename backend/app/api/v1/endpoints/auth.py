@@ -2,7 +2,7 @@ import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from redis.asyncio import Redis
 from sqlalchemy import select
@@ -22,11 +22,6 @@ router = APIRouter(prefix="/auth", tags=["Autenticação"])
 
 _FORGOT_PASSWORD_MAX_ATTEMPTS = 3
 _FORGOT_PASSWORD_WINDOW_SECONDS = 3600
-
-# Limite de tentativas de login por e-mail+IP, para dificultar força bruta
-# de senha (o mesmo padrão de contador no Redis já usado em forgot_password).
-_LOGIN_MAX_ATTEMPTS = 5
-_LOGIN_WINDOW_SECONDS = 900
 
 
 def _hash_token(raw_token: str) -> str:
@@ -56,35 +51,55 @@ async def register(payload: UserCreate, db: AsyncSession = Depends(get_db)) -> U
 
 @router.post("/login", response_model=Token)
 async def login(
-    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
 ) -> Token:
-    client_ip = request.client.host if request.client else "unknown"
-    rate_limit_key = f"login-attempts:{form_data.username.lower()}:{client_ip}"
+    """
+    Bloqueio de força bruta contado POR CONTA (e-mail), não por e-mail+IP:
+    um contador por IP permitiria a um atacante distribuir as tentativas
+    entre vários IPs e nunca bater no limite, já que cada IP ganharia sua
+    própria cota. Contando só pelo e-mail, a conta trava não importa de
+    quantos endereços venham as tentativas — mesma lógica adotada por
+    plataformas maiores (ex.: Ever Gauzy) para essa proteção.
 
-    attempts = await redis.incr(rate_limit_key)
-    if attempts == 1:
-        await redis.expire(rate_limit_key, _LOGIN_WINDOW_SECONDS)
-    if attempts > _LOGIN_MAX_ATTEMPTS:
+    Efeito colateral aceito: alguém pode trancar a conta de terceiros só
+    de saber o e-mail e errar a senha várias vezes. Isso é intencional —
+    prioriza impedir a quebra de senha sobre a disponibilidade momentânea
+    do login dessa conta específica.
+    """
+    email_key = form_data.username.strip().lower()
+    lockout_key = f"login-lockout:{email_key}"
+    attempts_key = f"login-attempts:{email_key}"
+
+    lockout_ttl = await redis.ttl(lockout_key)
+    if lockout_ttl and lockout_ttl > 0:
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,
-            "Muitas tentativas de login. Tente novamente mais tarde.",
+            "Muitas tentativas de login para esta conta. Tente novamente mais tarde.",
+            headers={"Retry-After": str(lockout_ttl)},
         )
 
     result = await db.execute(select(User).where(User.email == form_data.username))
     user = result.scalar_one_or_none()
 
     if user is None or not verify_password(form_data.password, user.password_hash):
+        attempts = await redis.incr(attempts_key)
+        if attempts == 1:
+            await redis.expire(attempts_key, settings.AUTH_LOCKOUT_SECONDS)
+        if attempts >= settings.AUTH_MAX_FAILED_ATTEMPTS:
+            # Trava a conta pelo período cheio e descarta o contador —
+            # a próxima tentativa (já sem lockout ativo) começa do zero.
+            await redis.set(lockout_key, "1", ex=settings.AUTH_LOCKOUT_SECONDS)
+            await redis.delete(attempts_key)
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED,
             "E-mail ou senha inválidos",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Login bem-sucedido: zera o contador para não penalizar tentativas futuras legítimas.
-    await redis.delete(rate_limit_key)
+    # Login bem-sucedido: zera contador/bloqueio para não penalizar acessos futuros legítimos.
+    await redis.delete(attempts_key, lockout_key)
 
     access_token = create_access_token(subject=str(user.id), role=user.role.value)
     return Token(access_token=access_token)
@@ -133,7 +148,7 @@ async def forgot_password(
     await db.commit()
 
     reset_link = f"{settings.FRONTEND_URL}/redefinir-senha?token={raw_token}"
-    send_password_reset_email(user.email, reset_link)
+    await send_password_reset_email(user.email, reset_link)
 
     return generic_response
 

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuthStore, isStaff } from "../../store/authStore";
 import { useCartStore, cartItemCount } from "../../store/cartStore";
 import { IconMenu, IconUser, IconBag, IconX } from "../ui/icons";
+import { ThemeToggle } from "../ui/ThemeToggle";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   `text-sm transition-colors hover:text-[var(--ink)] ${isActive ? "text-[var(--ink)] font-semibold" : "text-[var(--text-secondary)]"}`;
@@ -67,6 +68,7 @@ export function StorefrontLayout() {
           </Link>
 
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <Link
               to="/carrinho"
               className="relative flex h-10 items-center gap-2 rounded-full bg-[var(--ink)] pl-4 pr-1.5 text-sm font-medium text-white"

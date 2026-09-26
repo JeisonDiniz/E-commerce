@@ -26,11 +26,56 @@
   --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
+/* Tema escuro — só troca as superfícies/textos/bordas; --ink/--accent
+   (usados em botões sólidos com texto branco por cima, ex.
+   `bg-[var(--ink)] text-white`) ficam pretos nos dois temas de propósito,
+   pra não ter que revisar contraste de texto em cada botão do site. Ganha
+   valor por duas vias: automático (segue o SO, quando a pessoa nunca
+   escolheu manualmente) e manual (attribute `data-theme`, setado pelo
+   toggle em `useTheme` e persistido no localStorage). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --surface-page: #16150f;
+    --surface-card: #201f19;
+    --text-primary: #f2f0e8;
+    --text-secondary: #b8b5a8;
+    --text-muted: #83816f;
+    --border-hairline: #33322a;
+    --border-strong: #4a4839;
+
+    --status-good: #3ecf3e;
+    --status-warning: #d9a53f;
+    --status-serious: #f0966f;
+    --status-critical: #e35c5c;
+
+    --accent-soft: #2a291f;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-page: #16150f;
+  --surface-card: #201f19;
+  --text-primary: #f2f0e8;
+  --text-secondary: #b8b5a8;
+  --text-muted: #83816f;
+  --border-hairline: #33322a;
+  --border-strong: #4a4839;
+
+  --status-good: #3ecf3e;
+  --status-warning: #d9a53f;
+  --status-serious: #f0966f;
+  --status-critical: #e35c5c;
+
+  --accent-soft: #2a291f;
+}
+
 body {
   margin: 0;
   background: var(--surface-page);
   background-image:
-    radial-gradient(rgba(13, 13, 13, 0.025) 1px, transparent 1px);
+    radial-gradient(color-mix(in srgb, var(--text-primary) 4%, transparent) 1px, transparent 1px);
   background-size: 3px 3px;
   color: var(--text-primary);
   font-family: var(--font-body);

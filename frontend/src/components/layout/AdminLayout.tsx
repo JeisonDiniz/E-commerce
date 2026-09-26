@@ -2,6 +2,7 @@ import { Link, NavLink, Outlet } from "react-router-dom";
 import { useState } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { IconMenu, IconX } from "../ui/icons";
+import { ThemeToggle } from "../ui/ThemeToggle";
 
 const NAV_ITEMS = [
   { to: "/admin", label: "Dashboard", end: true },
@@ -42,14 +43,17 @@ export function AdminLayout() {
         <Link to="/" className="text-sm font-semibold">
           ← Voltar à loja
         </Link>
-        <button
-          onClick={() => setMenuOpen((v) => !v)}
-          aria-label="Abrir menu do painel"
-          aria-expanded={menuOpen}
-          className="text-[var(--ink)]"
-        >
-          {menuOpen ? <IconX /> : <IconMenu />}
-        </button>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <button
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-label="Abrir menu do painel"
+            aria-expanded={menuOpen}
+            className="text-[var(--ink)]"
+          >
+            {menuOpen ? <IconX /> : <IconMenu />}
+          </button>
+        </div>
       </div>
       {menuOpen && (
         <div className="border-b border-[var(--border-hairline)] bg-[var(--surface-card)] p-4 md:hidden">
@@ -62,9 +66,12 @@ export function AdminLayout() {
 
       {/* Sidebar fixa em telas médias/grandes */}
       <aside className="hidden w-60 shrink-0 border-r border-[var(--border-hairline)] bg-[var(--surface-card)] p-4 md:block">
-        <Link to="/" className="mb-6 block text-sm font-semibold">
-          ← Voltar à loja
-        </Link>
+        <div className="mb-6 flex items-center justify-between">
+          <Link to="/" className="text-sm font-semibold">
+            ← Voltar à loja
+          </Link>
+          <ThemeToggle />
+        </div>
         <p className="mb-4 text-xs text-[var(--text-muted)]">
           Logado como {user?.name} ({user?.role})
         </p>
