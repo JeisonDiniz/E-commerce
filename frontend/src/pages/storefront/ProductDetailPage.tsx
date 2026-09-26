@@ -111,7 +111,11 @@ export function ProductDetailPage() {
       {/* Info */}
       <div className="order-3 rounded-2xl border border-[var(--border-hairline)] p-6">
         <p className="text-xs tracked uppercase text-[var(--text-muted)]">{product.brand}</p>
-        <h1 className="mt-1 font-display text-2xl">{product.name}</h1>
+        {/* .toLocaleUpperCase, não CSS text-transform: nome de produto é
+            conteúdo dinâmico (cadastrado pelo admin) e pode ter acento —
+            ver comentário em index.css sobre o bug de renderização do
+            Archivo Black com "Ã"/"Ç" quando o maiúsculo vem do CSS. */}
+        <h1 className="mt-1 font-display text-2xl">{product.name.toLocaleUpperCase("pt-BR")}</h1>
         <p className="mt-2 text-xl font-semibold">{formatCurrency(product.base_price)}</p>
         <p className="mt-1 text-xs text-[var(--text-muted)]">Preço à vista, sem parcelamento adicional</p>
 

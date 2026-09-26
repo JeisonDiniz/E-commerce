@@ -83,7 +83,7 @@ export function CheckoutPage() {
         Voltar
       </button>
 
-      <h1 className="font-display text-3xl">Checkout</h1>
+      <h1 className="font-display text-3xl">CHECKOUT</h1>
 
       <div className="mt-4 flex gap-6 border-b border-[var(--border-hairline)] pb-4 text-xs tracked uppercase">
         <button onClick={() => setStep("endereco")} className={step === "endereco" ? "text-[var(--ink)]" : "text-[var(--text-muted)]"}>

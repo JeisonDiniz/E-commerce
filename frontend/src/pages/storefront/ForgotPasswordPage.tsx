@@ -24,7 +24,7 @@ export function ForgotPasswordPage() {
 
   return (
     <div className="mx-auto max-w-sm">
-      <h1 className="font-display text-3xl">Esqueci minha senha</h1>
+      <h1 className="font-display text-3xl">ESQUECI MINHA SENHA</h1>
 
       <Card className="mt-6">
         {sent ? (

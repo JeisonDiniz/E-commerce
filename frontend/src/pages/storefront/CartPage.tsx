@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCartStore } from "../../store/cartStore";
+import { useAuthStore } from "../../store/authStore";
 import { Button } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Spinner } from "../../components/ui/Spinner";
@@ -9,14 +10,19 @@ import { formatCurrency } from "../../utils/currency";
 
 export function CartPage() {
   const { cart, loading, refresh, updateItem, removeItem } = useCartStore();
+  const { user } = useAuthStore();
   const navigate = useNavigate();
   const [tab, setTab] = useState<"sacola" | "favoritos">("sacola");
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    // O carrinho é por usuário autenticado (endpoint /cart exige login) — sem
+    // isso, quem visita /carrinho deslogado gerava uma requisição fadada a
+    // 401 (erro no console a cada carregamento da página, sem nenhum efeito
+    // visível já que a tela trata cart=null como sacola vazia mesmo assim).
+    if (user) refresh();
+  }, [user, refresh]);
 
-  if (loading && !cart) return <Spinner />;
+  if (user && loading && !cart) return <Spinner />;
 
   const items = cart?.items ?? [];
   const total = items.reduce((sum, item) => sum + (item.unit_price ?? 0) * item.quantity, 0);
@@ -24,7 +30,7 @@ export function CartPage() {
   return (
     <div className="mx-auto max-w-5xl">
       <div className="flex items-center gap-6">
-        <h1 className="font-display text-3xl">Sacola</h1>
+        <h1 className="font-display text-3xl">SACOLA</h1>
         <button
           onClick={() => setTab("favoritos")}
           className={`text-sm tracked uppercase ${tab === "favoritos" ? "text-[var(--ink)]" : "text-[var(--text-muted)]"}`}

@@ -38,7 +38,7 @@ export function ResetPasswordPage() {
   if (!token) {
     return (
       <div className="mx-auto max-w-sm">
-        <h1 className="font-display text-3xl">Link inválido</h1>
+        <h1 className="font-display text-3xl">LINK INVÁLIDO</h1>
         <p className="mt-3 text-sm text-[var(--text-secondary)]">
           Este link de redefinição de senha está incompleto.{" "}
           <Link to="/esqueci-senha" className="underline">
@@ -52,7 +52,7 @@ export function ResetPasswordPage() {
 
   return (
     <div className="mx-auto max-w-sm">
-      <h1 className="font-display text-3xl">Redefinir senha</h1>
+      <h1 className="font-display text-3xl">REDEFINIR SENHA</h1>
       <Card className="mt-6">
         <form onSubmit={handleSubmit} className="space-y-3">
           <PasswordInput

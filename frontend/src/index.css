@@ -91,13 +91,18 @@ body {
 
 .font-display {
   font-family: var(--font-display);
-  /* Sem letter-spacing negativo: combinado com text-transform: uppercase,
-     qualquer tracking negativo (mesmo -0.01em) faz o navegador desenhar o
-     acento de "Ã"/"Ç" (comuns em títulos em PT-BR, ex. "Coleção") solto,
-     fora de posição — reproduzido e confirmado isolando cada propriedade.
-     Sem tracking negativo o glifo acentuado é composto corretamente. */
+  /* SEM text-transform: uppercase aqui de propósito. A tentativa anterior
+     (só tirar o letter-spacing negativo) não resolveu de fato: reproduzi de
+     novo com Playwright em viewport mobile e o acento de "Ã" (ex.:
+     "Coleção") continuava desenhado solto/fora de posição — é a fonte
+     Archivo Black + o transform de maiúsculas do navegador (aplicado
+     depois da composição do glifo) que não posicionam bem marcas
+     combinadas em letras acentuadas maiúsculas.
+     Correção real: o texto já chega pronto em maiúsculas (literal no JSX
+     para textos fixos; `.toLocaleUpperCase("pt-BR")` em JS para conteúdo
+     dinâmico, ex. nome de produto) — sem o navegador precisar transformar
+     nada em tempo de render, o glifo acentuado compõe certo. */
   line-height: 1.05;
-  text-transform: uppercase;
 }
 
 /* Campo estilo "underline" (sem caixa), usado no checkout — rótulo pequeno

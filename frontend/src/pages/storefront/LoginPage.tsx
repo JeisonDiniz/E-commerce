@@ -33,7 +33,7 @@ export function LoginPage() {
 
   return (
     <div className="mx-auto max-w-sm">
-      <h1 className="font-display text-3xl">Entrar</h1>
+      <h1 className="font-display text-3xl">ENTRAR</h1>
       <Card className="mt-6">
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>

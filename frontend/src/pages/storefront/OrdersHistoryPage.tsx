@@ -34,7 +34,7 @@ export function OrdersHistoryPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="font-display text-3xl">Meus pedidos</h1>
+      <h1 className="font-display text-3xl">MEUS PEDIDOS</h1>
 
       {confirmedId && (
         <p className="mt-3 rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">

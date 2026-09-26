@@ -64,9 +64,9 @@ export function HomePage() {
 
           <div className="mt-10 lg:mt-0">
             <h1 className="font-display text-5xl sm:text-6xl">
-              Nova
+              NOVA
               <br />
-              Coleção
+              COLEÇÃO
             </h1>
             <p className="mt-4 text-sm text-[var(--text-secondary)]">Temporada 2026</p>
             <a href="#catalogo">
@@ -88,7 +88,7 @@ export function HomePage() {
       <section id="catalogo" className="scroll-mt-24 border-t border-[var(--border-hairline)] pt-8">
         <p className="text-xs tracked text-[var(--text-muted)]">INÍCIO / PRODUTOS</p>
         <div className="mt-1 flex flex-wrap items-end justify-between gap-4">
-          <h2 className="font-display text-3xl">Produtos</h2>
+          <h2 className="font-display text-3xl">PRODUTOS</h2>
         </div>
 
         <div className="mt-5 flex flex-wrap items-center gap-3">
