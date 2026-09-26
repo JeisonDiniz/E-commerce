@@ -12,12 +12,20 @@ export function StorefrontLayout() {
   const { cart, refresh } = useCartStore();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => {
     if (user) refresh();
   }, [user, refresh]);
 
   const closeMenu = () => setMenuOpen(false);
+  const closeProfile = () => setProfileOpen(false);
+
+  const handleLogout = () => {
+    closeProfile();
+    logout();
+    navigate("/login");
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -75,16 +83,56 @@ export function StorefrontLayout() {
             </Link>
 
             {user ? (
-              <button
-                onClick={() => {
-                  logout();
-                  navigate("/login");
-                }}
-                title={`Sair (${user.name})`}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--ink)] text-white"
-              >
-                <IconUser />
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setProfileOpen((v) => !v)}
+                  title={user.name}
+                  aria-haspopup="menu"
+                  aria-expanded={profileOpen}
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--ink)] text-white"
+                >
+                  <IconUser />
+                </button>
+
+                {profileOpen && (
+                  <>
+                    <button
+                      className="fixed inset-0 z-10 cursor-default bg-transparent"
+                      onClick={closeProfile}
+                      aria-hidden="true"
+                      tabIndex={-1}
+                    />
+                    <div
+                      role="menu"
+                      className="absolute right-0 top-12 z-20 w-52 rounded-2xl border border-[var(--border-hairline)] bg-[var(--surface-card)] py-2 shadow-lg"
+                    >
+                      <p className="truncate px-4 py-2 text-xs text-[var(--text-muted)]">{user.name}</p>
+                      <NavLink
+                        to="/meus-pedidos"
+                        onClick={closeProfile}
+                        className="block px-4 py-2 text-sm hover:bg-neutral-100"
+                      >
+                        Meus pedidos
+                      </NavLink>
+                      {isStaff(user) && (
+                        <NavLink
+                          to="/admin"
+                          onClick={closeProfile}
+                          className="block px-4 py-2 text-sm hover:bg-neutral-100"
+                        >
+                          Painel admin
+                        </NavLink>
+                      )}
+                      <button
+                        onClick={handleLogout}
+                        className="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-neutral-100"
+                      >
+                        Sair
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             ) : (
               <Link to="/login" className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--ink)] text-white">
                 <IconUser />
@@ -116,8 +164,7 @@ export function StorefrontLayout() {
                   <button
                     onClick={() => {
                       closeMenu();
-                      logout();
-                      navigate("/login");
+                      handleLogout();
                     }}
                     className="rounded-lg px-3 py-2 text-left text-sm hover:bg-neutral-100"
                   >
