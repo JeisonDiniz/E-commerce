@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import type { Product } from "../../types";
 import { colorToHex } from "../../utils/colors";
 import { formatCurrency } from "../../utils/currency";
+import { IconHanger } from "../ui/icons";
 
 export function ProductCard({ product }: { product: Product }) {
   const totalStock = product.variants.reduce((sum, v) => sum + (v.stock_quantity ?? 0), 0);
@@ -10,7 +11,7 @@ export function ProductCard({ product }: { product: Product }) {
 
   return (
     <Link to={`/produtos/${product.id}`} className="group block">
-      <div className="flex aspect-[4/5] items-center justify-center overflow-hidden rounded-2xl bg-[#e9e7e0] text-5xl transition-transform duration-200 group-hover:-translate-y-1">
+      <div className="flex aspect-[4/5] items-center justify-center overflow-hidden rounded-2xl bg-[#e9e7e0] transition-transform duration-200 group-hover:-translate-y-1">
         {coverImage ? (
           <img
             src={coverImage.url}
@@ -19,7 +20,7 @@ export function ProductCard({ product }: { product: Product }) {
             className="h-full w-full object-cover"
           />
         ) : (
-          "👕"
+          <IconHanger width={44} height={44} className="text-[var(--text-muted)]" strokeWidth={1.3} />
         )}
       </div>
 

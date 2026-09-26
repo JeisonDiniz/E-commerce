@@ -5,7 +5,7 @@ import { useAuthStore } from "../../store/authStore";
 import { Button } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Spinner } from "../../components/ui/Spinner";
-import { IconMinus, IconPlus, IconX } from "../../components/ui/icons";
+import { IconHanger, IconMinus, IconPlus, IconX } from "../../components/ui/icons";
 import { formatCurrency } from "../../utils/currency";
 
 export function CartPage() {
@@ -55,8 +55,12 @@ export function CartPage() {
           <div className="space-y-6">
             {items.map((item) => (
               <div key={item.id} className="flex gap-4 border-b border-[var(--border-hairline)] pb-6">
-                <div className="flex h-24 w-20 shrink-0 items-center justify-center rounded-xl bg-[#e9e7e0] text-2xl">
-                  👕
+                <div className="flex h-24 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#e9e7e0]">
+                  {item.image_url ? (
+                    <img src={item.image_url} alt={item.product_name ?? item.sku ?? ""} className="h-full w-full object-cover" />
+                  ) : (
+                    <IconHanger width={26} height={26} className="text-[var(--text-muted)]" />
+                  )}
                 </div>
                 <div className="flex flex-1 flex-col justify-between">
                   <div className="flex items-start justify-between">

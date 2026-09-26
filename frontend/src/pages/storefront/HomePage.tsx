@@ -5,7 +5,7 @@ import { ProductCard } from "../../components/product/ProductCard";
 import { Spinner } from "../../components/ui/Spinner";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Button } from "../../components/ui/Button";
-import { IconArrowRight, IconSearch } from "../../components/ui/icons";
+import { IconArrowRight, IconHanger, IconSearch } from "../../components/ui/icons";
 
 const SIZES = ["PP", "P", "M", "G", "GG", "XG"];
 
@@ -79,8 +79,16 @@ export function HomePage() {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div className="flex h-64 items-center justify-center rounded-2xl bg-[#e9e7e0] text-6xl sm:h-80">👖</div>
-          <div className="mt-8 flex h-64 items-center justify-center rounded-2xl bg-[#dedcd2] text-6xl sm:h-80">👕</div>
+          {/* Placeholder editorial pra quando ainda não há campanha fotográfica
+              pronta: blocos de cor sólida com o ícone de cabide como marca
+              d'água discreta, não uma ilustração literal — evita a cara de
+              "protótipo com emoji" enquanto não tem foto de verdade. */}
+          <div className="flex h-64 items-center justify-center rounded-2xl bg-[#e9e7e0] sm:h-80">
+            <IconHanger width={72} height={72} className="text-[var(--ink)]/10" strokeWidth={1} />
+          </div>
+          <div className="mt-8 flex h-64 items-center justify-center rounded-2xl bg-[#dedcd2] sm:h-80">
+            <IconHanger width={72} height={72} className="text-[var(--ink)]/10" strokeWidth={1} />
+          </div>
         </div>
       </section>
 

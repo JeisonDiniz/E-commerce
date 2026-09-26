@@ -5,7 +5,7 @@ import { checkout } from "../../api/orders";
 import type { Address, PaymentMethod } from "../../types";
 import { Button } from "../../components/ui/Button";
 import { useCartStore } from "../../store/cartStore";
-import { IconArrowRight } from "../../components/ui/icons";
+import { IconArrowRight, IconHanger } from "../../components/ui/icons";
 import { formatCurrency } from "../../utils/currency";
 
 const PAYMENT_OPTIONS: { value: PaymentMethod; label: string }[] = [
@@ -208,7 +208,13 @@ export function CheckoutPage() {
           <div className="mt-4 space-y-4">
             {items.map((item) => (
               <div key={item.id} className="flex items-center gap-3 text-sm">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-[#e9e7e0] text-lg">👕</div>
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#e9e7e0]">
+                  {item.image_url ? (
+                    <img src={item.image_url} alt={item.product_name ?? item.sku ?? ""} className="h-full w-full object-cover" />
+                  ) : (
+                    <IconHanger width={18} height={18} className="text-[var(--text-muted)]" />
+                  )}
+                </div>
                 <div className="flex-1">
                   <p className="font-medium">{item.product_name ?? item.sku}</p>
                   <p className="text-xs text-[var(--text-muted)]">Qtd. {item.quantity}</p>

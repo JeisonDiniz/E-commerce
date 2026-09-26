@@ -21,11 +21,13 @@ class CartItemRead(BaseModel):
     id: uuid.UUID
     variant_id: uuid.UUID
     quantity: int
-    # Dados de exibição (produto/preço), enriquecidos pelo endpoint a partir
-    # da variante — evita o front-end ter que buscar cada produto separadamente.
+    # Dados de exibição (produto/preço/foto), enriquecidos pelo endpoint a
+    # partir da variante — evita o front-end ter que buscar cada produto
+    # separadamente.
     sku: str | None = None
     product_name: str | None = None
     unit_price: float | None = None
+    image_url: str | None = None
 
 
 class CartRead(BaseModel):

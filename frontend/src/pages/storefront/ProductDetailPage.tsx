@@ -4,6 +4,7 @@ import { fetchProduct } from "../../api/catalog";
 import type { Product } from "../../types";
 import { Spinner } from "../../components/ui/Spinner";
 import { Button } from "../../components/ui/Button";
+import { IconHanger } from "../../components/ui/icons";
 import { useAuthStore } from "../../store/authStore";
 import { useCartStore } from "../../store/cartStore";
 import { colorToHex } from "../../utils/colors";
@@ -88,8 +89,8 @@ export function ProductDetailPage() {
             </button>
           ))
         ) : (
-          <div className="flex aspect-square w-16 shrink-0 items-center justify-center rounded-lg bg-[#e9e7e0] text-xl text-[var(--text-muted)] md:w-full">
-            👕
+          <div className="flex aspect-square w-16 shrink-0 items-center justify-center rounded-lg bg-[#e9e7e0] md:w-full">
+            <IconHanger width={22} height={22} className="text-[var(--text-muted)]" />
           </div>
         )}
       </div>
@@ -104,7 +105,7 @@ export function ProductDetailPage() {
             className="h-full w-full animate-[fadein_0.2s_ease-in-out] object-cover"
           />
         ) : (
-          <span className="text-8xl text-[var(--text-muted)]">👕</span>
+          <IconHanger width={72} height={72} className="text-[var(--text-muted)]" strokeWidth={1.1} />
         )}
       </div>
 

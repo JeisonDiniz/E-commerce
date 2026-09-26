@@ -114,6 +114,16 @@ export function IconWhatsApp(props: IconProps) {
   );
 }
 
+export function IconHanger(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 3.5a1.6 1.6 0 1 1 1.4 2.4c-.7.3-1.4.9-1.4 1.9v.6" />
+      <path d="M12 8.4 3.6 14a1.3 1.3 0 0 0 .7 2.4h15.4a1.3 1.3 0 0 0 .7-2.4L12 8.4Z" />
+      <path d="M5.8 16.4 4 19.8h16l-1.8-3.4" />
+    </svg>
+  );
+}
+
 export function IconHeart(props: IconProps) {
   return (
     <svg {...base} {...props}>

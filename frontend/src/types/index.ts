@@ -101,6 +101,7 @@ export interface CartItem {
   sku?: string | null;
   product_name?: string | null;
   unit_price?: number | null;
+  image_url?: string | null;
 }
 
 export interface Cart {
