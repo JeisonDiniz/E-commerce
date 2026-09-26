@@ -4,6 +4,7 @@ import { useAuthStore, isStaff } from "../../store/authStore";
 import { useCartStore, cartItemCount } from "../../store/cartStore";
 import { IconMenu, IconUser, IconBag, IconX } from "../ui/icons";
 import { ThemeToggle } from "../ui/ThemeToggle";
+import { WhatsAppButton } from "../ui/WhatsAppButton";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   `text-sm transition-colors hover:text-[var(--ink)] ${isActive ? "text-[var(--ink)] font-semibold" : "text-[var(--text-secondary)]"}`;
@@ -195,6 +196,8 @@ export function StorefrontLayout() {
       <footer className="border-t border-[var(--border-hairline)] py-6 text-center text-xs tracked text-[var(--text-muted)]">
         PROJETO DE TCC — LOJA VIRTUAL COM ESTOQUE INTELIGENTE E MACHINE LEARNING
       </footer>
+
+      <WhatsAppButton />
     </div>
   );
 }
